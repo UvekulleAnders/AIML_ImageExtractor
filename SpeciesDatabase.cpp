@@ -220,6 +220,32 @@ std::vector<ImageRecord> CSpeciesDatabase::GetImages()
 	sqlite3_finalize(stmt);
 	return images;
 }
+bool CSpeciesDatabase::GetImagePng(long long imageId, std::vector<uchar>& png)
+{
+	png.clear();
+	if (m_db == nullptr)
+		return false;
+	sqlite3_stmt* stmt = nullptr;
+	if (sqlite3_prepare_v2(m_db, "SELECT image_png FROM images WHERE id = ?;", -1, &stmt, nullptr) != SQLITE_OK)
+	{
+		SetError("prepare");
+		return false;
+	}
+	sqlite3_bind_int64(stmt, 1, imageId);
+	bool ok = false;
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		const uchar* data = static_cast<const uchar*>(sqlite3_column_blob(stmt, 0));
+		const int size = sqlite3_column_bytes(stmt, 0);
+		if (data != nullptr && size > 0)
+		{
+			png.assign(data, data + size);
+			ok = true;
+		}
+	}
+	sqlite3_finalize(stmt);
+	return ok;
+}
 bool CSpeciesDatabase::Exec(const char* sql)
 {
 	char* message = nullptr;

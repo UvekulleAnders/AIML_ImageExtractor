@@ -17,12 +17,17 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 - Select a region of the shown frame with the mouse (press the left button, drag, release). The region is cropped out as a PNG and stored in the speciesImages.db SQLite database.
 - speciesImages.db is created next to the executable when the application starts. It has a species table and an images table (source file, frame number, position and size, PNG data).
 
+- **Manual extraction:** drag a rectangle on the frame, then choose the species.
+- **Automatic extraction:** *Image > Detect birds* (or `D`) outlines birds in the frame in green using a YOLOX model (OpenCV `dnn`); *Image > Auto extract detected birds* (`A`) stores all of them for one chosen species, and clicking a green box stores just that bird. *Detect on every frame* detects while browsing.
+- **Export for machine learning:** *File > Export dataset...* writes one folder per species (`Swedish__Latin`) with `img<id>.png` files plus `manifest.csv` (image_id, file, species_id, swedish, latin, english, source_file, frame, x, y, w, h). The folder-per-class layout loads directly in PyTorch `ImageFolder` / Keras; split train/validation by source video to avoid leakage.
+
 ## Requirements
 
 - Windows
 - Visual Studio with the **Desktop development with C++** workload and the **C++ MFC** component (the project uses platform toolset `v145`)
 - OpenCV 4.14, with its `include` and library folders available on disk
 
+- Bird detection needs the YOLOX model (about 36 MB, not stored in git): download https://huggingface.co/opencv/object_detection_yolox/resolve/main/object_detection_yolox_2022nov.onnx into a `models` folder in the repository root (or next to the exe). OpenCV must include the `dnn` module.
 ## Building
 
 1. Build OpenCV 4.14 (modules linked: `core`, `imgproc`, `imgcodecs`, `highgui`, `video`, `videoio`) and install it into one folder per configuration:

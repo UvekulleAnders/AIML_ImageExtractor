@@ -180,6 +180,7 @@ BEGIN
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
         MENUITEM "&Close",                      ID_FILE_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
@@ -227,6 +228,7 @@ BEGIN
         MENUITEM "&Close",                      ID_FILE_CLOSE
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
         MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
+        MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
         MENUITEM SEPARATOR
         MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
@@ -267,6 +269,12 @@ BEGIN
                 MENUITEM "&Aqua Style",         ID_VIEW_APPLOOK_OFF_2007_AQUA
             END
         END
+    END
+    POPUP "&Image"
+    BEGIN
+        MENUITEM "&Detect birds\tD",              ID_IMAGE_DETECT
+        MENUITEM "Detect on &every frame",       ID_IMAGE_AUTODETECT
+        MENUITEM "&Auto extract detected birds\tA", ID_IMAGE_AUTOEXTRACT
     END
     POPUP "&Window"
     BEGIN
@@ -477,6 +485,10 @@ STRINGTABLE
 BEGIN
     ID_FILE_NEW             "Create a new document\nNew"
     ID_FILE_OPEN            "Open an existing document\nOpen"
+    ID_FILE_EXPORT_DATASET  "Export the stored images as class folders plus manifest.csv\nExport dataset"
+    ID_IMAGE_DETECT         "Detect birds in the current frame\nDetect"
+    ID_IMAGE_AUTODETECT     "Detect birds automatically on every frame\nDetect on every frame"
+    ID_IMAGE_AUTOEXTRACT    "Store every detected bird of the current frame\nAuto extract"
     ID_FILE_CLOSE           "Close the active document\nClose"
     ID_FILE_SAVE            "Save the active document\nSave"
     ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"

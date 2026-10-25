@@ -126,6 +126,9 @@ bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
 	m_nextFrameIndex = frameIndex + 1.0;
 	m_currentFrame = frame;
 	m_currentFrameIndex = frameIndex;
+	m_detections.clear();
+	if (m_autoDetect)
+		DetectObjects();
 	UpdateAllViews(nullptr);
 	return true;
 }
@@ -139,10 +142,61 @@ bool CAIMLImageExtractorDoc::ReopenVideo()
 
 bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 {
+	return ExtractRegions(std::vector<cv::Rect>(1, region));
+}
+
+void CAIMLImageExtractorDoc::SetAutoDetect(bool on)
+{
+	m_autoDetect = on;
+	if (on && m_detections.empty())
+		DetectObjects();
+	UpdateAllViews(nullptr);
+}
+
+bool CAIMLImageExtractorDoc::DetectObjects()
+{
+	CFrameWnd* mainFrame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd());
+	m_detections.clear();
+	if (m_currentFrame.empty())
+		return false;
+	CWaitCursor wait;
+	if (!m_detector.EnsureLoaded())
+	{
+		if (mainFrame != nullptr)
+			mainFrame->SetMessageText(m_detector.GetLastError());
+		m_autoDetect = false;
+		return false;
+	}
+	m_detections = m_detector.DetectBirds(m_currentFrame);
+	if (mainFrame != nullptr)
+	{
+		CString message;
+		message.Format(_T("Frame %.0f: %d bird(s) detected"), m_currentFrameIndex, static_cast<int>(m_detections.size()));
+		mainFrame->SetMessageText(message);
+	}
+	UpdateAllViews(nullptr);
+	return true;
+}
+
+bool CAIMLImageExtractorDoc::AutoExtract()
+{
+	CFrameWnd* mainFrame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd());
+	if (m_detections.empty() && !DetectObjects())
+		return false;
+	if (m_detections.empty())
+	{
+		if (mainFrame != nullptr)
+			mainFrame->SetMessageText(_T("No birds detected in this frame; nothing to extract."));
+		return false;
+	}
+	return ExtractRegions(m_detections);
+}
+
+bool CAIMLImageExtractorDoc::ExtractRegions(const std::vector<cv::Rect>& regions)
+{
 	CFrameWnd* mainFrame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd());
 	const cv::Rect bounds(0, 0, m_currentFrame.cols, m_currentFrame.rows);
-	const cv::Rect clipped = region & bounds;
-	if (m_currentFrame.empty() || clipped.empty())
+	if (m_currentFrame.empty())
 		return false;
 
 	CSpeciesDatabase& database = theApp.GetSpeciesDatabase();
@@ -153,8 +207,19 @@ bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 		return false;
 	}
 
-	std::vector<uchar> png;
-	if (!cv::imencode(".png", m_currentFrame(clipped), png))
+	std::vector<cv::Rect> clippedRegions;
+	std::vector<std::vector<uchar>> pngs;
+	for (const cv::Rect& region : regions)
+	{
+		const cv::Rect clipped = region & bounds;
+		std::vector<uchar> png;
+		if (!clipped.empty() && cv::imencode(".png", m_currentFrame(clipped), png))
+		{
+			clippedRegions.push_back(clipped);
+			pngs.push_back(std::move(png));
+		}
+	}
+	if (clippedRegions.empty())
 		return false;
 
 	CAssignSpeciesDlg dialog(database, AfxGetMainWnd());
@@ -165,14 +230,19 @@ bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 		return false;
 	}
 
+	int stored = 0;
 	long long imageId = 0;
-	const bool stored = database.AddImage(GetPathName(), static_cast<long long>(m_currentFrameIndex), clipped, png,
-		dialog.GetSpeciesId(), &imageId);
-	CString message;
-	if (stored)
+	for (size_t i = 0; i < clippedRegions.size(); ++i)
 	{
-		message.Format(_T("Stored image %lld (%dx%d) from frame %.0f in speciesImages.db (species %lld)"),
-			imageId, clipped.width, clipped.height, m_currentFrameIndex, dialog.GetSpeciesId());
+		if (database.AddImage(GetPathName(), static_cast<long long>(m_currentFrameIndex), clippedRegions[i], pngs[i],
+			dialog.GetSpeciesId(), &imageId))
+			++stored;
+	}
+	CString message;
+	if (stored > 0)
+	{
+		message.Format(_T("Stored %d image(s) from frame %.0f in speciesImages.db (species %lld, last image %lld)"),
+			stored, m_currentFrameIndex, dialog.GetSpeciesId(), imageId);
 	}
 	else
 	{
@@ -182,9 +252,8 @@ bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 		mainFrame->SetMessageText(message);
 	if (CMainFrame* main = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd()))
 		main->RefreshSpeciesView();
-	return stored;
+	return stored > 0;
 }
-
 CString CAIMLImageExtractorDoc::GetVideoCodec() const
 {
 	const int fourcc = static_cast<int>(m_video.get(cv::CAP_PROP_FOURCC));

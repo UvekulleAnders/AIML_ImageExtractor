@@ -52,3 +52,6 @@ AIML_Ima.*/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Detection model (download, see README)
+models/

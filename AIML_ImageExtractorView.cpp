@@ -33,6 +33,12 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorView, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_COMMAND(ID_IMAGE_DETECT, &CAIMLImageExtractorView::OnImageDetect)
+	ON_COMMAND(ID_IMAGE_AUTOEXTRACT, &CAIMLImageExtractorView::OnImageAutoExtract)
+	ON_COMMAND(ID_IMAGE_AUTODETECT, &CAIMLImageExtractorView::OnImageAutoDetect)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_AUTODETECT, &CAIMLImageExtractorView::OnUpdateImageAutoDetect)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_DETECT, &CAIMLImageExtractorView::OnUpdateImageCommand)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_AUTOEXTRACT, &CAIMLImageExtractorView::OnUpdateImageCommand)
 	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
@@ -169,6 +175,54 @@ void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
 		pDC->SelectObject(oldBrush);
 		pDC->SelectObject(oldPen);
 	}
+
+	// Detected birds (green); click one to store it, or use Auto extract for all.
+	if (!pDoc->GetDetections().empty())
+	{
+		CPen pen(PS_SOLID, 2, RGB(0, 230, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		for (const cv::Rect& box : pDoc->GetDetections())
+		{
+			pDC->Rectangle(drawRect.left + static_cast<int>(box.x * scale),
+				drawRect.top + static_cast<int>(box.y * scale),
+				drawRect.left + static_cast<int>((box.x + box.width) * scale),
+				drawRect.top + static_cast<int>((box.y + box.height) * scale));
+		}
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
+}
+
+void CAIMLImageExtractorView::OnImageDetect()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->DetectObjects();
+}
+
+void CAIMLImageExtractorView::OnImageAutoExtract()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->AutoExtract();
+}
+
+void CAIMLImageExtractorView::OnImageAutoDetect()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->SetAutoDetect(!pDoc->GetAutoDetect());
+}
+
+void CAIMLImageExtractorView::OnUpdateImageAutoDetect(CCmdUI* pCmdUI)
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	pCmdUI->Enable(pDoc != nullptr && !pDoc->GetCurrentFrame().empty());
+	pCmdUI->SetCheck(pDoc != nullptr && pDoc->GetAutoDetect() ? 1 : 0);
+}
+
+void CAIMLImageExtractorView::OnUpdateImageCommand(CCmdUI* pCmdUI)
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	pCmdUI->Enable(pDoc != nullptr && !pDoc->GetCurrentFrame().empty());
 }
 
 BOOL CAIMLImageExtractorView::OnEraseBkgnd(CDC* /*pDC*/)
@@ -250,6 +304,24 @@ void CAIMLImageExtractorView::OnLButtonUp(UINT nFlags, CPoint point)
 				if (!pDoc->ExtractRegion(region))
 					m_hasSelection = false;
 			}
+			else if (pDoc != nullptr)
+			{
+				// A plain click inside a detected bird stores that bird.
+				for (const cv::Rect& box : pDoc->GetDetections())
+				{
+					if (box.contains(cv::Point(end.x, end.y)))
+					{
+						m_selectionRect = box;
+						m_selectionFrame = pDoc->GetCurrentFrameIndex();
+						m_hasSelection = true;
+						Invalidate(FALSE);
+						UpdateWindow();
+						if (!pDoc->ExtractRegion(box))
+							m_hasSelection = false;
+						break;
+					}
+				}
+			}
 		}
 		Invalidate(FALSE);
 	}
@@ -276,6 +348,12 @@ void CAIMLImageExtractorView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			return;
 		case VK_END:
 			pDoc->MoveToFrame(lastFrame);
+			return;
+		case 'D':
+			pDoc->DetectObjects();
+			return;
+		case 'A':
+			pDoc->AutoExtract();
 			return;
 		}
 	}

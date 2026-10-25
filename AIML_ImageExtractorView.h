@@ -60,6 +60,11 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnImageDetect();
+	afx_msg void OnImageAutoExtract();
+	afx_msg void OnImageAutoDetect();
+	afx_msg void OnUpdateImageAutoDetect(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateImageCommand(CCmdUI* pCmdUI);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	DECLARE_MESSAGE_MAP()
 };

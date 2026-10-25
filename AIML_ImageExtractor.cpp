@@ -12,6 +12,7 @@
 #include "ChildFrm.h"
 #include "AIML_ImageExtractorDoc.h"
 #include "AIML_ImageExtractorView.h"
+#include "DatasetExporter.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -25,6 +26,7 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorApp, CWinAppEx)
 	// Standard file based document commands
 	ON_COMMAND(ID_FILE_NEW, &CWinAppEx::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CAIMLImageExtractorApp::OnFileOpen)
+	ON_COMMAND(ID_FILE_EXPORT_DATASET, &CAIMLImageExtractorApp::OnFileExportDataset)
 	// Standard print setup command
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinAppEx::OnFilePrintSetup)
 END_MESSAGE_MAP()
@@ -72,6 +74,30 @@ void CAIMLImageExtractorApp::OnFileOpen()
 		OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY, filter);
 	if (dialog.DoModal() == IDOK)
 		OpenDocumentFile(dialog.GetPathName());
+}
+
+void CAIMLImageExtractorApp::OnFileExportDataset()
+{
+	if (!m_speciesDb.IsOpen() || m_speciesDb.GetImageCount() == 0)
+	{
+		AfxMessageBox(_T("There are no stored images to export."), MB_ICONINFORMATION);
+		return;
+	}
+	CFolderPickerDialog picker(nullptr, 0, AfxGetMainWnd());
+	if (picker.DoModal() != IDOK)
+		return;
+	const bool includeUnknown = AfxMessageBox(
+		_T("Include images labelled Unknown in the export?"), MB_YESNO | MB_ICONQUESTION) == IDYES;
+
+	CWaitCursor wait;
+	CString error;
+	const int count = ExportDataset(m_speciesDb, picker.GetPathName(), includeUnknown, error);
+	CString message;
+	if (count < 0)
+		message = _T("Export failed: ") + error;
+	else
+		message.Format(_T("Exported %d image(s) to %s (class folders plus manifest.csv)"), count, static_cast<LPCTSTR>(picker.GetPathName()));
+	AfxMessageBox(message, count < 0 ? MB_ICONERROR : MB_ICONINFORMATION);
 }
 
 BOOL CAIMLImageExtractorApp::InitInstance()
@@ -249,6 +275,7 @@ void CAIMLImageExtractorApp::SaveCustomState()
 }
 
 // CAIMLImageExtractorApp message handlers
+
 
 
 

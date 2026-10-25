@@ -60,6 +60,12 @@
     <ClInclude Include="SpeciesDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ObjectDetector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DatasetExporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PropertiesWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -99,6 +105,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WikipediaLookup.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectDetector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DatasetExporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SpeciesDatabase.cpp">

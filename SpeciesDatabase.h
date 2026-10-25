@@ -55,6 +55,8 @@ public:
 	long long GetImageCount();
 	// All stored images (metadata only), ordered by species and id.
 	std::vector<ImageRecord> GetImages();
+	// Reads the PNG data of one image.
+	bool GetImagePng(long long imageId, std::vector<uchar>& png);
 
 private:
 	bool Exec(const char* sql);

@@ -215,12 +215,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)' == 'Debug'">
     <Link>
-      <AdditionalDependencies>opencv_core$(OpenCVVersion)d.lib;opencv_imgproc$(OpenCVVersion)d.lib;opencv_imgcodecs$(OpenCVVersion)d.lib;opencv_highgui$(OpenCVVersion)d.lib;opencv_video$(OpenCVVersion)d.lib;opencv_videoio$(OpenCVVersion)d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_core$(OpenCVVersion)d.lib;opencv_dnn$(OpenCVVersion)d.lib;opencv_imgproc$(OpenCVVersion)d.lib;opencv_imgcodecs$(OpenCVVersion)d.lib;opencv_highgui$(OpenCVVersion)d.lib;opencv_video$(OpenCVVersion)d.lib;opencv_videoio$(OpenCVVersion)d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)' == 'Release'">
     <Link>
-      <AdditionalDependencies>opencv_core$(OpenCVVersion).lib;opencv_imgproc$(OpenCVVersion).lib;opencv_imgcodecs$(OpenCVVersion).lib;opencv_highgui$(OpenCVVersion).lib;opencv_video$(OpenCVVersion).lib;opencv_videoio$(OpenCVVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_core$(OpenCVVersion).lib;opencv_dnn$(OpenCVVersion).lib;opencv_imgproc$(OpenCVVersion).lib;opencv_imgcodecs$(OpenCVVersion).lib;opencv_highgui$(OpenCVVersion).lib;opencv_video$(OpenCVVersion).lib;opencv_videoio$(OpenCVVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -236,6 +236,8 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="SpeciesDatabase.h" />
+    <ClInclude Include="ObjectDetector.h" />
+    <ClInclude Include="DatasetExporter.h" />
     <ClInclude Include="AssignSpeciesDlg.h" />
     <ClInclude Include="WikipediaLookup.h" />
     <ClInclude Include="Resource.h" />
@@ -259,6 +261,8 @@
     </ClCompile>
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="SpeciesDatabase.cpp" />
+    <ClCompile Include="ObjectDetector.cpp" />
+    <ClCompile Include="DatasetExporter.cpp" />
     <ClCompile Include="AssignSpeciesDlg.cpp" />
     <ClCompile Include="WikipediaLookup.cpp" />
     <ClCompile Include="third_party\sqlite\sqlite3.c">

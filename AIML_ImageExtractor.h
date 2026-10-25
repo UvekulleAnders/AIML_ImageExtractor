@@ -31,6 +31,7 @@ public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	afx_msg void OnFileOpen();
+	afx_msg void OnFileExportDataset();
 
 // Implementation
 	UINT  m_nAppLook;
