@@ -23,7 +23,7 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 
 ## Building
 
-1. Install or build OpenCV 4.14 (modules used: `core`, `videoio`, `imgproc`).
+1. Install or build OpenCV 4.14 (modules linked: `core`, `imgproc`, `highgui`, `video`, `videoio`).
 2. Open `AIML_ImageExtractor.slnx` in Visual Studio, or build from the command line:
 
    ```powershell
