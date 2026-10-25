@@ -70,6 +70,8 @@ Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\ope
 | `AIML_ImageExtractorDoc.cpp/.h` | Document: opens the video and reads frames with OpenCV |
 | `AIML_ImageExtractorView.cpp/.h` | View: draws the current frame, handles keyboard navigation and the mouse selection of image regions |
 | `SpeciesDatabase.cpp/.h` | SQLite wrapper for `speciesImages.db` |
+| `AssignSpeciesDlg.cpp/.h` | Dialog that assigns an extracted image to a species or creates a new one |
+| `WikipediaLookup.cpp/.h` | Suggests Latin and English species names from Wikipedia (WinHTTP) |
 | `third_party/sqlite` | SQLite 3.54.1 amalgamation, compiled into the application |
 | `MainFrm`, `ChildFrm` | Main and MDI child frame windows |
 | `PropertiesWnd` | Properties pane with video information |

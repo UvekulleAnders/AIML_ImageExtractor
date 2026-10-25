@@ -51,6 +51,12 @@
     <ClInclude Include="OutputWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AssignSpeciesDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WikipediaLookup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="SpeciesDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -87,6 +93,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OutputWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AssignSpeciesDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WikipediaLookup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SpeciesDatabase.cpp">

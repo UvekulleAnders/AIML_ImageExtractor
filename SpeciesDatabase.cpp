@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "SpeciesDatabase.h"
+#include <string>
 
 namespace
 {
@@ -10,8 +11,9 @@ namespace
 		"PRAGMA foreign_keys = ON;"
 		"CREATE TABLE IF NOT EXISTS species ("
 		"  id INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"  name TEXT NOT NULL UNIQUE,"
+		"  swedish_name TEXT NOT NULL UNIQUE,"
 		"  latin_name TEXT,"
+		"  english_name TEXT,"
 		"  created_at TEXT NOT NULL DEFAULT (datetime('now'))"
 		");"
 		"CREATE TABLE IF NOT EXISTS images ("
@@ -40,7 +42,17 @@ bool CSpeciesDatabase::Open(const CString& path)
 		Close();
 		return false;
 	}
-	if (!Exec(kSchema))
+	// Databases created by the first version had species.name and no english_name.
+	if (ColumnExists("species", "name") && !ColumnExists("species", "swedish_name") &&
+		!Exec("ALTER TABLE species RENAME COLUMN name TO swedish_name;"))
+	{
+		Close();
+		return false;
+	}
+	if (!Exec(kSchema) ||
+		(ColumnExists("species", "swedish_name") && !ColumnExists("species", "english_name") &&
+			!Exec("ALTER TABLE species ADD COLUMN english_name TEXT;")) ||
+		!Exec("INSERT OR IGNORE INTO species (id, swedish_name, latin_name, english_name) VALUES (1, 'Unknown', '', 'Unknown');"))
 	{
 		Close();
 		return false;
@@ -58,15 +70,15 @@ void CSpeciesDatabase::Close()
 }
 
 bool CSpeciesDatabase::AddImage(const CString& sourceFile, long long frameIndex, const cv::Rect& region,
-	const std::vector<uchar>& pngData, long long* newId)
+	const std::vector<uchar>& pngData, long long speciesId, long long* newId)
 {
 	if (m_db == nullptr || pngData.empty())
 		return false;
 
 	sqlite3_stmt* stmt = nullptr;
 	const char* sql =
-		"INSERT INTO images (source_file, frame_index, x, y, width, height, image_png)"
-		" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);";
+		"INSERT INTO images (source_file, frame_index, x, y, width, height, image_png, species_id)"
+		" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
 	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK)
 	{
 		SetError("prepare");
@@ -80,6 +92,7 @@ bool CSpeciesDatabase::AddImage(const CString& sourceFile, long long frameIndex,
 	sqlite3_bind_int(stmt, 5, region.width);
 	sqlite3_bind_int(stmt, 6, region.height);
 	sqlite3_bind_blob64(stmt, 7, pngData.data(), pngData.size(), SQLITE_TRANSIENT);
+	sqlite3_bind_int64(stmt, 8, speciesId);
 
 	const bool ok = sqlite3_step(stmt) == SQLITE_DONE;
 	if (!ok)
@@ -90,6 +103,76 @@ bool CSpeciesDatabase::AddImage(const CString& sourceFile, long long frameIndex,
 	return ok;
 }
 
+std::vector<SpeciesRecord> CSpeciesDatabase::GetSpecies()
+{
+	std::vector<SpeciesRecord> species;
+	if (m_db == nullptr)
+		return species;
+
+	sqlite3_stmt* stmt = nullptr;
+	const char* sql =
+		"SELECT id, swedish_name, COALESCE(latin_name, ''), COALESCE(english_name, '') FROM species"
+		" ORDER BY (id = 1) DESC, swedish_name COLLATE NOCASE;";
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK)
+	{
+		SetError("prepare");
+		return species;
+	}
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		SpeciesRecord record;
+		record.id = sqlite3_column_int64(stmt, 0);
+		record.swedishName = reinterpret_cast<LPCWSTR>(sqlite3_column_text16(stmt, 1));
+		record.latinName = reinterpret_cast<LPCWSTR>(sqlite3_column_text16(stmt, 2));
+		record.englishName = reinterpret_cast<LPCWSTR>(sqlite3_column_text16(stmt, 3));
+		species.push_back(record);
+	}
+	sqlite3_finalize(stmt);
+	return species;
+}
+
+bool CSpeciesDatabase::AddSpecies(const SpeciesRecord& species, long long* newId)
+{
+	if (m_db == nullptr)
+		return false;
+
+	sqlite3_stmt* stmt = nullptr;
+	const char* sql = "INSERT INTO species (swedish_name, latin_name, english_name) VALUES (?1, ?2, ?3);";
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK)
+	{
+		SetError("prepare");
+		return false;
+	}
+	sqlite3_bind_text16(stmt, 1, species.swedishName.GetString(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text16(stmt, 2, species.latinName.GetString(), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text16(stmt, 3, species.englishName.GetString(), -1, SQLITE_TRANSIENT);
+
+	const bool ok = sqlite3_step(stmt) == SQLITE_DONE;
+	if (!ok)
+		SetError("insert species");
+	else if (newId != nullptr)
+		*newId = sqlite3_last_insert_rowid(m_db);
+	sqlite3_finalize(stmt);
+	return ok;
+}
+
+bool CSpeciesDatabase::ColumnExists(const char* table, const char* column)
+{
+	sqlite3_stmt* stmt = nullptr;
+	const std::string sql = std::string("PRAGMA table_info(") + table + ");";
+	bool found = false;
+	if (sqlite3_prepare_v2(m_db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK)
+	{
+		while (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			const char* name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+			if (name != nullptr && _stricmp(name, column) == 0)
+				found = true;
+		}
+	}
+	sqlite3_finalize(stmt);
+	return found;
+}
 long long CSpeciesDatabase::GetImageCount()
 {
 	if (m_db == nullptr)
@@ -106,6 +189,37 @@ long long CSpeciesDatabase::GetImageCount()
 	return count;
 }
 
+std::vector<ImageRecord> CSpeciesDatabase::GetImages()
+{
+	std::vector<ImageRecord> images;
+	if (m_db == nullptr)
+		return images;
+
+	sqlite3_stmt* stmt = nullptr;
+	const char* sql =
+		"SELECT id, COALESCE(species_id, 1), source_file, frame_index, x, y, width, height"
+		" FROM images ORDER BY 2, id;";
+	if (sqlite3_prepare_v2(m_db, sql, -1, &stmt, nullptr) != SQLITE_OK)
+	{
+		SetError("prepare");
+		return images;
+	}
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		ImageRecord record;
+		record.id = sqlite3_column_int64(stmt, 0);
+		record.speciesId = sqlite3_column_int64(stmt, 1);
+		record.sourceFile = reinterpret_cast<LPCWSTR>(sqlite3_column_text16(stmt, 2));
+		record.frameIndex = sqlite3_column_int64(stmt, 3);
+		record.x = sqlite3_column_int(stmt, 4);
+		record.y = sqlite3_column_int(stmt, 5);
+		record.width = sqlite3_column_int(stmt, 6);
+		record.height = sqlite3_column_int(stmt, 7);
+		images.push_back(record);
+	}
+	sqlite3_finalize(stmt);
+	return images;
+}
 bool CSpeciesDatabase::Exec(const char* sql)
 {
 	char* message = nullptr;

@@ -24,6 +24,7 @@ public:
 public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL LoadFrame(UINT nIDResource, DWORD dwDefaultStyle = WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
+	void RefreshSpeciesView() { m_wndClassView.FillClassView(); }
 	void SetVideoProperties(const CString& fileName, const CString& codec, ULONGLONG fileSize, double frameCount);
 
 // Implementation

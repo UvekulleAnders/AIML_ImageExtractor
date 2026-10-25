@@ -209,9 +209,10 @@ BOOL CMainFrame::CreateDockingWindows()
 
 	// Create class view
 	CString strClassView;
-	bNameValid = strClassView.LoadString(IDS_CLASS_VIEW);
+	strClassView = _T("Species Database");
+	bNameValid = TRUE;
 	ASSERT(bNameValid);
-	if (!m_wndClassView.Create(strClassView, this, CRect(0, 0, 200, 200), TRUE, ID_VIEW_CLASSVIEW, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBRS_LEFT | CBRS_FLOAT_MULTI))
+	if (!m_wndClassView.Create(strClassView, this, CRect(0, 0, 320, 200), TRUE, ID_VIEW_CLASSVIEW, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CBRS_LEFT | CBRS_FLOAT_MULTI))
 	{
 		TRACE0("Failed to create Class View window\n");
 		return FALSE; // failed to create

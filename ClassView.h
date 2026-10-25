@@ -28,7 +28,9 @@ protected:
 	CImageList m_ClassViewImages;
 	UINT m_nCurrSort;
 
+public:
 	void FillClassView();
+protected:
 
 // Overrides
 public:

@@ -244,7 +244,11 @@ void CAIMLImageExtractorView::OnLButtonUp(UINT nFlags, CPoint point)
 				m_selectionRect = region;
 				m_selectionFrame = pDoc->GetCurrentFrameIndex();
 				m_hasSelection = true;
-				pDoc->ExtractRegion(region);
+				// Repaint first so the rectangle stays visible while the species dialog is open.
+				Invalidate(FALSE);
+				UpdateWindow();
+				if (!pDoc->ExtractRegion(region))
+					m_hasSelection = false;
 			}
 		}
 		Invalidate(FALSE);

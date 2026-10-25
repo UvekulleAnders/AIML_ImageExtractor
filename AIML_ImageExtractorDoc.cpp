@@ -12,6 +12,7 @@
 
 #include "AIML_ImageExtractorDoc.h"
 #include "MainFrm.h"
+#include "AssignSpeciesDlg.h"
 
 #include <propkey.h>
 #include <atlconv.h>
@@ -156,13 +157,22 @@ bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 	if (!cv::imencode(".png", m_currentFrame(clipped), png))
 		return false;
 
+	CAssignSpeciesDlg dialog(database, AfxGetMainWnd());
+	if (dialog.DoModal() != IDOK)
+	{
+		if (mainFrame != nullptr)
+			mainFrame->SetMessageText(_T("Image extraction cancelled; nothing was stored."));
+		return false;
+	}
+
 	long long imageId = 0;
-	const bool stored = database.AddImage(GetPathName(), static_cast<long long>(m_currentFrameIndex), clipped, png, &imageId);
+	const bool stored = database.AddImage(GetPathName(), static_cast<long long>(m_currentFrameIndex), clipped, png,
+		dialog.GetSpeciesId(), &imageId);
 	CString message;
 	if (stored)
 	{
-		message.Format(_T("Stored image %lld (%dx%d) from frame %.0f in speciesImages.db"),
-			imageId, clipped.width, clipped.height, m_currentFrameIndex);
+		message.Format(_T("Stored image %lld (%dx%d) from frame %.0f in speciesImages.db (species %lld)"),
+			imageId, clipped.width, clipped.height, m_currentFrameIndex, dialog.GetSpeciesId());
 	}
 	else
 	{
@@ -170,6 +180,8 @@ bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
 	}
 	if (mainFrame != nullptr)
 		mainFrame->SetMessageText(message);
+	if (CMainFrame* main = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd()))
+		main->RefreshSpeciesView();
 	return stored;
 }
 

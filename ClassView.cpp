@@ -5,6 +5,7 @@
 #include "ClassView.h"
 #include "Resource.h"
 #include "AIML_ImageExtractor.h"
+#include "SpeciesDatabase.h"
 
 class CClassViewMenuButton : public CMFCToolBarMenuButton
 {
@@ -111,6 +112,7 @@ int CClassView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	// Fill in some static tree view data (dummy code, nothing magic here)
+	SetWindowText(_T("Species Database"));
 	FillClassView();
 
 	return 0;
@@ -122,44 +124,48 @@ void CClassView::OnSize(UINT nType, int cx, int cy)
 	AdjustLayout();
 }
 
+// Shows the contents of speciesImages.db: species with their stored images.
 void CClassView::FillClassView()
 {
-	HTREEITEM hRoot = m_wndClassView.InsertItem(_T("FakeApp classes"), 0, 0);
+	m_wndClassView.SetRedraw(FALSE);
+	m_wndClassView.DeleteAllItems();
+
+	CSpeciesDatabase& database = theApp.GetSpeciesDatabase();
+	CString text;
+	text.Format(_T("speciesImages.db (%lld images)"), database.IsOpen() ? database.GetImageCount() : 0LL);
+	HTREEITEM hRoot = m_wndClassView.InsertItem(text, 0, 0);
 	m_wndClassView.SetItemState(hRoot, TVIS_BOLD, TVIS_BOLD);
 
-	HTREEITEM hClass = m_wndClassView.InsertItem(_T("CFakeAboutDlg"), 1, 1, hRoot);
-	m_wndClassView.InsertItem(_T("CFakeAboutDlg()"), 3, 3, hClass);
+	const std::vector<ImageRecord> images = database.GetImages();
+	for (const SpeciesRecord& species : database.GetSpecies())
+	{
+		text = species.swedishName;
+		if (!species.latinName.IsEmpty())
+			text += _T(" (") + species.latinName + _T(")");
+		if (!species.englishName.IsEmpty() && species.englishName != species.swedishName)
+			text += _T(" - ") + species.englishName;
 
+		int count = 0;
+		for (const ImageRecord& image : images)
+			count += image.speciesId == species.id ? 1 : 0;
+		CString label;
+		label.Format(_T("%s [%d]"), static_cast<LPCTSTR>(text), count);
+
+		HTREEITEM hSpecies = m_wndClassView.InsertItem(label, 1, 1, hRoot);
+		for (const ImageRecord& image : images)
+		{
+			if (image.speciesId != species.id)
+				continue;
+			const CString file = image.sourceFile.Mid(image.sourceFile.ReverseFind(_T('\\')) + 1);
+			CString imageText;
+			imageText.Format(_T("#%lld  %s  frame %lld  %dx%d at (%d,%d)"), image.id,
+				static_cast<LPCTSTR>(file), image.frameIndex, image.width, image.height, image.x, image.y);
+			m_wndClassView.InsertItem(imageText, 3, 3, hSpecies);
+		}
+	}
 	m_wndClassView.Expand(hRoot, TVE_EXPAND);
-
-	hClass = m_wndClassView.InsertItem(_T("CFakeApp"), 1, 1, hRoot);
-	m_wndClassView.InsertItem(_T("CFakeApp()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("InitInstance()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("OnAppAbout()"), 3, 3, hClass);
-
-	hClass = m_wndClassView.InsertItem(_T("CFakeAppDoc"), 1, 1, hRoot);
-	m_wndClassView.InsertItem(_T("CFakeAppDoc()"), 4, 4, hClass);
-	m_wndClassView.InsertItem(_T("~CFakeAppDoc()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("OnNewDocument()"), 3, 3, hClass);
-
-	hClass = m_wndClassView.InsertItem(_T("CFakeAppView"), 1, 1, hRoot);
-	m_wndClassView.InsertItem(_T("CFakeAppView()"), 4, 4, hClass);
-	m_wndClassView.InsertItem(_T("~CFakeAppView()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("GetDocument()"), 3, 3, hClass);
-	m_wndClassView.Expand(hClass, TVE_EXPAND);
-
-	hClass = m_wndClassView.InsertItem(_T("CFakeAppFrame"), 1, 1, hRoot);
-	m_wndClassView.InsertItem(_T("CFakeAppFrame()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("~CFakeAppFrame()"), 3, 3, hClass);
-	m_wndClassView.InsertItem(_T("m_wndMenuBar"), 6, 6, hClass);
-	m_wndClassView.InsertItem(_T("m_wndToolBar"), 6, 6, hClass);
-	m_wndClassView.InsertItem(_T("m_wndStatusBar"), 6, 6, hClass);
-
-	hClass = m_wndClassView.InsertItem(_T("Globals"), 2, 2, hRoot);
-	m_wndClassView.InsertItem(_T("theFakeApp"), 5, 5, hClass);
-	m_wndClassView.Expand(hClass, TVE_EXPAND);
+	m_wndClassView.SetRedraw(TRUE);
 }
-
 void CClassView::OnContextMenu(CWnd* pWnd, CPoint point)
 {
 	CTreeCtrl* pWndTree = (CTreeCtrl*)&m_wndClassView;

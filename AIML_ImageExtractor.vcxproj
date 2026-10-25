@@ -236,6 +236,8 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="SpeciesDatabase.h" />
+    <ClInclude Include="AssignSpeciesDlg.h" />
+    <ClInclude Include="WikipediaLookup.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="ViewTree.h" />
@@ -257,6 +259,8 @@
     </ClCompile>
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="SpeciesDatabase.cpp" />
+    <ClCompile Include="AssignSpeciesDlg.cpp" />
+    <ClCompile Include="WikipediaLookup.cpp" />
     <ClCompile Include="third_party\sqlite\sqlite3.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
