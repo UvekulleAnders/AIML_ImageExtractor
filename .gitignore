@@ -46,3 +46,9 @@ AIML_Ima.*/
 # Code analysis / tooling
 *.sarif
 .vscode/
+
+# Runtime database created next to the executable
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

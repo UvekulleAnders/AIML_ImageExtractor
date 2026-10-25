@@ -30,6 +30,8 @@ public:
 	double GetCurrentFrameIndex() const { return m_currentFrameIndex; }
 	double GetFrameCount() const { return m_frameCount; }
 	CString GetVideoCodec() const;
+	// Cuts the region out of the current frame and stores it in the species database.
+	bool ExtractRegion(const cv::Rect& region);
 #ifdef SHARED_HANDLERS
 	virtual void InitializeSearchContent();
 	virtual void OnDrawThumbnail(CDC& dc, LPRECT lprcBounds);

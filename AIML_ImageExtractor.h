@@ -8,6 +8,7 @@
 #endif
 
 #include "resource.h"       // main symbols
+#include "SpeciesDatabase.h"
 
 
 // CAIMLImageExtractorApp:
@@ -18,6 +19,11 @@ class CAIMLImageExtractorApp : public CWinAppEx
 {
 public:
 	CAIMLImageExtractorApp() noexcept;
+
+	CSpeciesDatabase& GetSpeciesDatabase() { return m_speciesDb; }
+
+private:
+	CSpeciesDatabase m_speciesDb;
 
 
 // Overrides

@@ -30,6 +30,10 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorView, CView)
 	ON_WM_CONTEXTMENU()
 	ON_WM_RBUTTONUP()
 	ON_WM_KEYDOWN()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 // CAIMLImageExtractorView construction/destruction
@@ -63,14 +67,52 @@ void CAIMLImageExtractorView::OnInitialUpdate()
 
 void CAIMLImageExtractorView::OnDraw(CDC* pDC)
 {
+	CRect clientRect;
+	GetClientRect(&clientRect);
+	if (pDC->IsPrinting() || clientRect.IsRectEmpty())
+	{
+		DrawContent(pDC, clientRect);
+		return;
+	}
+
+	// Draw off-screen so the selection rectangle does not flicker while dragging.
+	CDC memDC;
+	CBitmap bitmap;
+	if (!memDC.CreateCompatibleDC(pDC) || !bitmap.CreateCompatibleBitmap(pDC, clientRect.Width(), clientRect.Height()))
+	{
+		DrawContent(pDC, clientRect);
+		return;
+	}
+	CBitmap* oldBitmap = memDC.SelectObject(&bitmap);
+	DrawContent(&memDC, clientRect);
+	pDC->BitBlt(0, 0, clientRect.Width(), clientRect.Height(), &memDC, 0, 0, SRCCOPY);
+	memDC.SelectObject(oldBitmap);
+}
+
+bool CAIMLImageExtractorView::GetFrameLayout(const CRect& clientRect, const cv::Mat& frame, CRect& drawRect, double& scale) const
+{
+	if (frame.empty() || clientRect.IsRectEmpty())
+		return false;
+
+	const double scaleX = static_cast<double>(clientRect.Width()) / frame.cols;
+	const double scaleY = static_cast<double>(clientRect.Height()) / frame.rows;
+	scale = scaleX < scaleY ? scaleX : scaleY;
+	const int drawWidth = static_cast<int>(frame.cols * scale);
+	const int drawHeight = static_cast<int>(frame.rows * scale);
+	const int left = clientRect.left + (clientRect.Width() - drawWidth) / 2;
+	const int top = clientRect.top + (clientRect.Height() - drawHeight) / 2;
+	drawRect.SetRect(left, top, left + drawWidth, top + drawHeight);
+	return drawWidth > 0 && drawHeight > 0;
+}
+
+void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
+{
 	CAIMLImageExtractorDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 		return;
 
 	const cv::Mat& frame = pDoc->GetCurrentFrame();
-	CRect clientRect;
-	GetClientRect(&clientRect);
 	pDC->FillSolidRect(clientRect, RGB(0, 0, 0));
 	if (frame.empty() || clientRect.IsRectEmpty())
 		return;
@@ -93,18 +135,121 @@ void CAIMLImageExtractorView::OnDraw(CDC* pDC)
 	bitmapInfo.bmiHeader.biBitCount = 32;
 	bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-	double scaleX = static_cast<double>(clientRect.Width()) / bgraFrame.cols;
-	double scaleY = static_cast<double>(clientRect.Height()) / bgraFrame.rows;
-	double scale = scaleX < scaleY ? scaleX : scaleY;
-	int drawWidth = static_cast<int>(bgraFrame.cols * scale);
-	int drawHeight = static_cast<int>(bgraFrame.rows * scale);
-	int left = clientRect.left + (clientRect.Width() - drawWidth) / 2;
-	int top = clientRect.top + (clientRect.Height() - drawHeight) / 2;
+	CRect drawRect;
+	double scale = 1.0;
+	if (!GetFrameLayout(clientRect, bgraFrame, drawRect, scale))
+		return;
 
 	::SetStretchBltMode(pDC->GetSafeHdc(), HALFTONE);
-	::StretchDIBits(pDC->GetSafeHdc(), left, top, drawWidth, drawHeight,
+	::StretchDIBits(pDC->GetSafeHdc(), drawRect.left, drawRect.top, drawRect.Width(), drawRect.Height(),
 		0, 0, bgraFrame.cols, bgraFrame.rows, bgraFrame.data,
 		&bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+
+	// Selection rectangle: the one being dragged, or the last one made on this frame.
+	CRect selection;
+	if (m_selecting)
+	{
+		selection.SetRect(m_dragStart, m_dragCurrent);
+		selection.NormalizeRect();
+	}
+	else if (m_hasSelection && m_selectionFrame == pDoc->GetCurrentFrameIndex())
+	{
+		selection.SetRect(
+			drawRect.left + static_cast<int>(m_selectionRect.x * scale),
+			drawRect.top + static_cast<int>(m_selectionRect.y * scale),
+			drawRect.left + static_cast<int>((m_selectionRect.x + m_selectionRect.width) * scale),
+			drawRect.top + static_cast<int>((m_selectionRect.y + m_selectionRect.height) * scale));
+	}
+	if (!selection.IsRectEmpty())
+	{
+		CPen pen(PS_SOLID, 2, RGB(255, 220, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		pDC->Rectangle(selection);
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
+}
+
+BOOL CAIMLImageExtractorView::OnEraseBkgnd(CDC* /*pDC*/)
+{
+	return TRUE;
+}
+
+bool CAIMLImageExtractorView::ClientToFramePoint(CPoint point, CPoint& framePoint) const
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	if (pDoc == nullptr)
+		return false;
+	const cv::Mat& frame = pDoc->GetCurrentFrame();
+
+	CRect clientRect, drawRect;
+	GetClientRect(&clientRect);
+	double scale = 1.0;
+	if (!GetFrameLayout(clientRect, frame, drawRect, scale))
+		return false;
+
+	int x = static_cast<int>((point.x - drawRect.left) / scale);
+	int y = static_cast<int>((point.y - drawRect.top) / scale);
+	x = x < 0 ? 0 : (x > frame.cols ? frame.cols : x);
+	y = y < 0 ? 0 : (y > frame.rows ? frame.rows : y);
+	framePoint.SetPoint(x, y);
+	return true;
+}
+
+void CAIMLImageExtractorView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CAIMLImageExtractorDoc* pDoc = GetDocument();
+	CPoint framePoint;
+	SetFocus();
+	if (pDoc != nullptr && ClientToFramePoint(point, framePoint))
+	{
+		m_selecting = true;
+		m_hasSelection = false;
+		m_dragStart = m_dragCurrent = point;
+		SetCapture();
+		Invalidate(FALSE);
+	}
+	CView::OnLButtonDown(nFlags, point);
+}
+
+void CAIMLImageExtractorView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (m_selecting)
+	{
+		m_dragCurrent = point;
+		Invalidate(FALSE);
+	}
+	CView::OnMouseMove(nFlags, point);
+}
+
+void CAIMLImageExtractorView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if (m_selecting)
+	{
+		m_selecting = false;
+		::ReleaseCapture();
+		m_dragCurrent = point;
+
+		CAIMLImageExtractorDoc* pDoc = GetDocument();
+		CPoint start, end;
+		if (pDoc != nullptr && ClientToFramePoint(m_dragStart, start) && ClientToFramePoint(m_dragCurrent, end))
+		{
+			const cv::Rect region(
+				cv::Point(start.x < end.x ? start.x : end.x, start.y < end.y ? start.y : end.y),
+				cv::Point(start.x < end.x ? end.x : start.x, start.y < end.y ? end.y : start.y));
+			// A plain click (or a tiny drag) is not a selection.
+			if (region.width >= kMinSelectionSize && region.height >= kMinSelectionSize)
+			{
+				m_selectionRect = region;
+				m_selectionFrame = pDoc->GetCurrentFrameIndex();
+				m_hasSelection = true;
+				pDoc->ExtractRegion(region);
+			}
+		}
+		Invalidate(FALSE);
+	}
+	CView::OnLButtonUp(nFlags, point);
 }
 
 void CAIMLImageExtractorView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)

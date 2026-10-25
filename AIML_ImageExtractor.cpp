@@ -98,6 +98,19 @@ BOOL CAIMLImageExtractorApp::InitInstance()
 
 	AfxEnableControlContainer();
 
+	// Open (or create) the species database next to the executable.
+	TCHAR modulePath[MAX_PATH] = {};
+	::GetModuleFileName(nullptr, modulePath, MAX_PATH);
+	CString databasePath(modulePath);
+	databasePath = databasePath.Left(databasePath.ReverseFind(_T('\\')) + 1) + _T("speciesImages.db");
+	if (!m_speciesDb.Open(databasePath))
+	{
+		CString message;
+		message.Format(_T("Could not open the species database:\n%s\n\n%s"),
+			static_cast<LPCTSTR>(databasePath), static_cast<LPCTSTR>(m_speciesDb.GetLastError()));
+		AfxMessageBox(message, MB_ICONWARNING);
+	}
+
 	EnableTaskbarInteraction();
 
 	// AfxInitRichEdit2() is required to use RichEdit control
@@ -165,6 +178,7 @@ BOOL CAIMLImageExtractorApp::InitInstance()
 int CAIMLImageExtractorApp::ExitInstance()
 {
 	//TODO: handle additional resources you may have added
+	m_speciesDb.Close();
 	AfxOleTerm(FALSE);
 
 	return CWinAppEx::ExitInstance();

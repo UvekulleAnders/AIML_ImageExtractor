@@ -14,6 +14,8 @@ A Windows desktop application for browsing a video frame by frame, built with MF
   | Home / End | First / last frame |
 
 - A properties pane shows the video's codec, file name, file size and number of frames.
+- Select a region of the shown frame with the mouse (press the left button, drag, release). The region is cropped out as a PNG and stored in the speciesImages.db SQLite database.
+- speciesImages.db is created next to the executable when the application starts. It has a species table and an images table (source file, frame number, position and size, PNG data).
 
 ## Requirements
 
@@ -23,7 +25,7 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 
 ## Building
 
-1. Build OpenCV 4.14 (modules linked: `core`, `imgproc`, `highgui`, `video`, `videoio`) and install it into one folder per configuration:
+1. Build OpenCV 4.14 (modules linked: `core`, `imgproc`, `imgcodecs`, `highgui`, `video`, `videoio`) and install it into one folder per configuration:
 
    ```
    C:\opencv\opencv\out\install\
@@ -58,6 +60,7 @@ Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\ope
 1. Start the application and choose **File > Open**.
 2. Select a video file.
 3. Use the keyboard shortcuts above to move between frames.
+4. Press the left mouse button on the frame, drag to draw a rectangle and release. The cropped image is stored in speciesImages.db and the status bar confirms it.
 
 ## Project layout
 
@@ -65,7 +68,9 @@ Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\ope
 |---------|---------|
 | `AIML_ImageExtractor.cpp/.h` | Application class and file-open dialog |
 | `AIML_ImageExtractorDoc.cpp/.h` | Document: opens the video and reads frames with OpenCV |
-| `AIML_ImageExtractorView.cpp/.h` | View: draws the current frame and handles keyboard navigation |
+| `AIML_ImageExtractorView.cpp/.h` | View: draws the current frame, handles keyboard navigation and the mouse selection of image regions |
+| `SpeciesDatabase.cpp/.h` | SQLite wrapper for `speciesImages.db` |
+| `third_party/sqlite` | SQLite 3.54.1 amalgamation, compiled into the application |
 | `MainFrm`, `ChildFrm` | Main and MDI child frame windows |
 | `PropertiesWnd` | Properties pane with video information |
 | `ClassView`, `FileView`, `OutputWnd`, `ViewTree` | Docking panes from the MFC project template |

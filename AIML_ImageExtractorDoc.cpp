@@ -83,10 +83,10 @@ BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	}
 
 	CFileStatus fileStatus;
-	ULONGLONG fileSize = CFile::GetStatus(GetPathName(), fileStatus) ? fileStatus.m_size : 0;
+	ULONGLONG fileSize = CFile::GetStatus(lpszPathName, fileStatus) ? fileStatus.m_size : 0;
 	CMainFrame* mainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
 	if (mainFrame != nullptr)
-		mainFrame->SetVideoProperties(GetPathName(), GetVideoCodec(), fileSize, m_frameCount);
+		mainFrame->SetVideoProperties(lpszPathName, GetVideoCodec(), fileSize, m_frameCount);
 
 	UpdateAllViews(nullptr);
 	return TRUE;
@@ -134,6 +134,43 @@ bool CAIMLImageExtractorDoc::ReopenVideo()
 	m_video.release();
 	m_nextFrameIndex = 0.0;
 	return m_video.open(std::string(m_filePath.GetString()), cv::CAP_FFMPEG);
+}
+
+bool CAIMLImageExtractorDoc::ExtractRegion(const cv::Rect& region)
+{
+	CFrameWnd* mainFrame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd());
+	const cv::Rect bounds(0, 0, m_currentFrame.cols, m_currentFrame.rows);
+	const cv::Rect clipped = region & bounds;
+	if (m_currentFrame.empty() || clipped.empty())
+		return false;
+
+	CSpeciesDatabase& database = theApp.GetSpeciesDatabase();
+	if (!database.IsOpen())
+	{
+		if (mainFrame != nullptr)
+			mainFrame->SetMessageText(_T("The species database is not open; the image was not stored."));
+		return false;
+	}
+
+	std::vector<uchar> png;
+	if (!cv::imencode(".png", m_currentFrame(clipped), png))
+		return false;
+
+	long long imageId = 0;
+	const bool stored = database.AddImage(GetPathName(), static_cast<long long>(m_currentFrameIndex), clipped, png, &imageId);
+	CString message;
+	if (stored)
+	{
+		message.Format(_T("Stored image %lld (%dx%d) from frame %.0f in speciesImages.db"),
+			imageId, clipped.width, clipped.height, m_currentFrameIndex);
+	}
+	else
+	{
+		message.Format(_T("Could not store the image: %s"), static_cast<LPCTSTR>(database.GetLastError()));
+	}
+	if (mainFrame != nullptr)
+		mainFrame->SetMessageText(message);
+	return stored;
 }
 
 CString CAIMLImageExtractorDoc::GetVideoCodec() const
