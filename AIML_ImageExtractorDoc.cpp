@@ -51,13 +51,30 @@ BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	m_currentFrameIndex = 0.0;
 
 	CW2A filePath(lpszPathName);
-	if (!m_video.open(static_cast<LPCSTR>(filePath), cv::CAP_FFMPEG))
+	m_filePath = static_cast<LPCSTR>(filePath);
+	m_seekable = true;
+	if (!ReopenVideo())
 	{
 		AfxMessageBox(_T("OpenCV could not open this video file."), MB_ICONERROR);
 		return FALSE;
 	}
 
 	m_frameCount = m_video.get(cv::CAP_PROP_FRAME_COUNT);
+	if (m_frameCount <= 0.0)
+	{
+		// Raw streams (e.g. .h264) carry no frame count or seek index, so count by decoding.
+		CWaitCursor waitCursor;
+		m_seekable = false;
+		double frames = 0.0;
+		while (m_video.grab())
+			frames += 1.0;
+		m_frameCount = frames;
+		if (!ReopenVideo())
+		{
+			AfxMessageBox(_T("OpenCV could not reopen this video file."), MB_ICONERROR);
+			return FALSE;
+		}
+	}
 	if (!MoveToFrame(0.0))
 	{
 		m_video.release();
@@ -84,16 +101,39 @@ bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
 	if (frameIndex >= m_frameCount)
 		frameIndex = m_frameCount - 1;
 
-	if (!m_video.set(cv::CAP_PROP_POS_FRAMES, frameIndex))
-		return false;
 	cv::Mat frame;
+	if (m_seekable)
+	{
+		if (!m_video.set(cv::CAP_PROP_POS_FRAMES, frameIndex))
+			return false;
+	}
+	else
+	{
+		// Sequential-only stream: rewind by reopening, then decode forward to the target.
+		if (frameIndex < m_nextFrameIndex && !ReopenVideo())
+			return false;
+		while (m_nextFrameIndex < frameIndex)
+		{
+			if (!m_video.grab())
+				return false;
+			m_nextFrameIndex += 1.0;
+		}
+	}
 	if (!m_video.read(frame) || frame.empty())
 		return false;
 
+	m_nextFrameIndex = frameIndex + 1.0;
 	m_currentFrame = frame;
 	m_currentFrameIndex = frameIndex;
 	UpdateAllViews(nullptr);
 	return true;
+}
+
+bool CAIMLImageExtractorDoc::ReopenVideo()
+{
+	m_video.release();
+	m_nextFrameIndex = 0.0;
+	return m_video.open(std::string(m_filePath.GetString()), cv::CAP_FFMPEG);
 }
 
 CString CAIMLImageExtractorDoc::GetVideoCodec() const

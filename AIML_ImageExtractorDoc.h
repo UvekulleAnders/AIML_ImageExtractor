@@ -48,6 +48,10 @@ protected:
 	cv::Mat m_currentFrame;
 	double m_currentFrameIndex = 0;
 	double m_frameCount = 0;
+	double m_nextFrameIndex = 0;
+	bool m_seekable = true;
+	CStringA m_filePath;
+	bool ReopenVideo();
 
 // Generated message map functions
 protected:

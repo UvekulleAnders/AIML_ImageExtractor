@@ -65,8 +65,8 @@ CAIMLImageExtractorApp theApp;
 void CAIMLImageExtractorApp::OnFileOpen()
 {
 	static const TCHAR filter[] =
-		_T("Video Files (*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm)\0")
-		_T("*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm\0")
+		_T("Video Files (*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264)\0")
+		_T("*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264\0")
 		_T("All Files (*.*)\0*.*\0\0");
 	CFileDialog dialog(TRUE, nullptr, nullptr,
 		OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY, filter);
