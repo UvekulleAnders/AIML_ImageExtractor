@@ -19,11 +19,11 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 
 - Windows
 - Visual Studio with the **Desktop development with C++** workload and the **C++ MFC** component (the project uses platform toolset `v145`)
-- OpenCV, with its `include` and library folders available on disk
+- OpenCV 4.14, with its `include` and library folders available on disk
 
 ## Building
 
-1. Install or build OpenCV (modules used: `core`, `videoio`, `imgproc`).
+1. Install or build OpenCV 4.14 (modules used: `core`, `videoio`, `imgproc`).
 2. Open `AIML_ImageExtractor.slnx` in Visual Studio, or build from the command line:
 
    ```powershell
@@ -35,13 +35,12 @@ OpenCV is configured through MSBuild properties in `AIML_ImageExtractor.vcxproj`
 | Property | Meaning | Default |
 |----------|---------|---------|
 | `OpenCV_DIR` | OpenCV build directory (the one containing `include`) | none, must be set |
-| `OpenCVVersion` | Library version suffix | `2413` |
-| `OpenCV_VC` | Visual C++ folder name in the OpenCV layout | `vc14` |
+| `OpenCVVersion` | Library version suffix | `4140` |
+| `OpenCV_VC` | Visual C++ folder name in the OpenCV layout | `vc18` |
 | `OpenCVLibraryDir` | Library folder | `$(OpenCV_DIR)\<x86\|x64>\<OpenCV_VC>\lib` |
 
 Override `OpenCVVersion`, `OpenCV_VC` or `OpenCVLibraryDir` when your OpenCV installation differs. Debug builds link the debug libraries and Release builds link the release libraries.
 
-> **Note:** The source uses the `cv::CAP_*` constants, which exist in OpenCV 3 and later, and the x64 Debug configuration also contains a hard-coded `#pragma comment(lib, ...)` path under `C:\opencv\opencv\out\install\x64-Debug\x64\vc18\lib`. Adjust the defaults above to match the OpenCV version you actually build against.
 
 ## Usage
 
