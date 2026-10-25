@@ -24,6 +24,7 @@ public:
 public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
+	afx_msg void OnFileOpen();
 
 // Implementation
 	UINT  m_nAppLook;

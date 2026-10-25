@@ -19,6 +19,7 @@ public:
 	CPropertiesWnd() noexcept;
 
 	void AdjustLayout();
+	void SetVideoProperties(const CString& fileName, const CString& codec, ULONGLONG fileSize, double frameCount);
 
 // Attributes
 public:

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <opencv2/opencv.hpp>
+
 
 class CAIMLImageExtractorDoc : public CDocument
 {
@@ -20,8 +22,14 @@ public:
 
 // Overrides
 public:
+	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
+	bool MoveToFrame(double frameIndex);
+	const cv::Mat& GetCurrentFrame() const { return m_currentFrame; }
+	double GetCurrentFrameIndex() const { return m_currentFrameIndex; }
+	double GetFrameCount() const { return m_frameCount; }
+	CString GetVideoCodec() const;
 #ifdef SHARED_HANDLERS
 	virtual void InitializeSearchContent();
 	virtual void OnDrawThumbnail(CDC& dc, LPRECT lprcBounds);
@@ -36,6 +44,10 @@ public:
 #endif
 
 protected:
+	cv::VideoCapture m_video;
+	cv::Mat m_currentFrame;
+	double m_currentFrameIndex = 0;
+	double m_frameCount = 0;
 
 // Generated message map functions
 protected:

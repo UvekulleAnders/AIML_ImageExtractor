@@ -24,7 +24,7 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorApp, CWinAppEx)
 	ON_COMMAND(ID_APP_ABOUT, &CAIMLImageExtractorApp::OnAppAbout)
 	// Standard file based document commands
 	ON_COMMAND(ID_FILE_NEW, &CWinAppEx::OnFileNew)
-	ON_COMMAND(ID_FILE_OPEN, &CWinAppEx::OnFileOpen)
+	ON_COMMAND(ID_FILE_OPEN, &CAIMLImageExtractorApp::OnFileOpen)
 	// Standard print setup command
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinAppEx::OnFilePrintSetup)
 END_MESSAGE_MAP()
@@ -61,6 +61,18 @@ CAIMLImageExtractorApp theApp;
 
 
 // CAIMLImageExtractorApp initialization
+
+void CAIMLImageExtractorApp::OnFileOpen()
+{
+	static const TCHAR filter[] =
+		_T("Video Files (*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm)\0")
+		_T("*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm\0")
+		_T("All Files (*.*)\0*.*\0\0");
+	CFileDialog dialog(TRUE, nullptr, nullptr,
+		OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY, filter);
+	if (dialog.DoModal() == IDOK)
+		OpenDocumentFile(dialog.GetPathName());
+}
 
 BOOL CAIMLImageExtractorApp::InitInstance()
 {

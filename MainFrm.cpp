@@ -268,6 +268,11 @@ void CMainFrame::SetDockingWindowIcons(BOOL bHiColorIcons)
 	UpdateMDITabbedBarsIcons();
 }
 
+void CMainFrame::SetVideoProperties(const CString& fileName, const CString& codec, ULONGLONG fileSize, double frameCount)
+{
+	m_wndProperties.SetVideoProperties(fileName, codec, fileSize, frameCount);
+}
+
 // CMainFrame diagnostics
 
 #ifdef _DEBUG

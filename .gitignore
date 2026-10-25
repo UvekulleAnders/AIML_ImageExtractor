@@ -1,0 +1,48 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+*.aps
+
+# Build output
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Temporary and generated files
+AIML_Ima.*/
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.exe
+*.idb
+*.tlog
+*.log
+*.tmp
+*.lastbuildstate
+*.res
+*.bak
+*_i.c
+*_p.c
+*.sdf
+*.opensdf
+
+# Code analysis / tooling
+*.sarif
+.vscode/

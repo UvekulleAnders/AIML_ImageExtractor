@@ -11,8 +11,19 @@
 #endif
 
 #include "AIML_ImageExtractorDoc.h"
+#include "MainFrm.h"
 
 #include <propkey.h>
+#include <atlconv.h>
+
+#if defined(_DEBUG) && defined(_M_X64)
+#define OPENCV_STRINGIZE_DETAIL(value) #value
+#define OPENCV_STRINGIZE(value) OPENCV_STRINGIZE_DETAIL(value)
+#define OPENCV_DEBUG_VERSION OPENCV_STRINGIZE(CV_VERSION_MAJOR) OPENCV_STRINGIZE(CV_VERSION_MINOR) OPENCV_STRINGIZE(CV_VERSION_REVISION)
+#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_core" OPENCV_DEBUG_VERSION "d.lib")
+#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_videoio" OPENCV_DEBUG_VERSION "d.lib")
+#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_imgproc" OPENCV_DEBUG_VERSION "d.lib")
+#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -31,11 +42,79 @@ END_MESSAGE_MAP()
 CAIMLImageExtractorDoc::CAIMLImageExtractorDoc() noexcept
 {
 	// TODO: add one-time construction code here
-
 }
 
 CAIMLImageExtractorDoc::~CAIMLImageExtractorDoc()
 {
+	m_video.release();
+}
+
+BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
+{
+	if (!CDocument::OnOpenDocument(lpszPathName))
+		return FALSE;
+
+	m_video.release();
+	m_currentFrame.release();
+	m_frameCount = 0.0;
+	m_currentFrameIndex = 0.0;
+
+	CW2A filePath(lpszPathName);
+	if (!m_video.open(static_cast<LPCSTR>(filePath), cv::CAP_FFMPEG))
+	{
+		AfxMessageBox(_T("OpenCV could not open this video file."), MB_ICONERROR);
+		return FALSE;
+	}
+
+	m_frameCount = m_video.get(cv::CAP_PROP_FRAME_COUNT);
+	if (!MoveToFrame(0.0))
+	{
+		m_video.release();
+		AfxMessageBox(_T("The video opened, but no frame could be read."), MB_ICONERROR);
+		return FALSE;
+	}
+
+	CFileStatus fileStatus;
+	ULONGLONG fileSize = CFile::GetStatus(GetPathName(), fileStatus) ? fileStatus.m_size : 0;
+	CMainFrame* mainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	if (mainFrame != nullptr)
+		mainFrame->SetVideoProperties(GetPathName(), GetVideoCodec(), fileSize, m_frameCount);
+
+	UpdateAllViews(nullptr);
+	return TRUE;
+}
+
+bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
+{
+	if (!m_video.isOpened() || m_frameCount <= 0.0)
+		return false;
+	if (frameIndex < 0)
+		frameIndex = 0;
+	if (frameIndex >= m_frameCount)
+		frameIndex = m_frameCount - 1;
+
+	if (!m_video.set(cv::CAP_PROP_POS_FRAMES, frameIndex))
+		return false;
+	cv::Mat frame;
+	if (!m_video.read(frame) || frame.empty())
+		return false;
+
+	m_currentFrame = frame;
+	m_currentFrameIndex = frameIndex;
+	UpdateAllViews(nullptr);
+	return true;
+}
+
+CString CAIMLImageExtractorDoc::GetVideoCodec() const
+{
+	const int fourcc = static_cast<int>(m_video.get(cv::CAP_PROP_FOURCC));
+	if (fourcc == 0)
+		return _T("Unknown");
+
+	CString codec;
+	codec.Format(_T("%c%c%c%c"), fourcc & 0xff, (fourcc >> 8) & 0xff,
+		(fourcc >> 16) & 0xff, (fourcc >> 24) & 0xff);
+	return codec;
 }
 
 BOOL CAIMLImageExtractorDoc::OnNewDocument()
@@ -136,3 +215,17 @@ void CAIMLImageExtractorDoc::Dump(CDumpContext& dc) const
 
 
 // CAIMLImageExtractorDoc commands
+
+namespace
+{
+	long ClampFrameIndex(long frameIndex, long frameCount)
+	{
+		if (frameIndex < 0)
+			frameIndex = 0;
+		if (frameCount <= 0)
+			return 0;
+		if (frameIndex >= frameCount)
+			frameIndex = frameCount - 1;
+		return frameIndex;
+	}
+}

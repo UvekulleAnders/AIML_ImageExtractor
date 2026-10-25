@@ -21,6 +21,39 @@ CPropertiesWnd::CPropertiesWnd() noexcept
 	m_nComboHeight = 0;
 }
 
+void CPropertiesWnd::SetVideoProperties(const CString& fileName, const CString& codec, ULONGLONG fileSize, double frameCount)
+{
+	if (m_wndPropList.GetSafeHwnd() == nullptr)
+		return;
+
+	m_wndPropList.RemoveAll();
+	CMFCPropertyGridProperty* videoGroup = new CMFCPropertyGridProperty(_T("Video"));
+	CString fileSizeText;
+	fileSizeText.Format(_T("%I64u bytes"), fileSize);
+	CString frameCountText;
+	frameCountText.Format(_T("%.0f"), frameCount);
+
+	COleVariant value(codec.GetString());
+	CMFCPropertyGridProperty* property = new CMFCPropertyGridProperty(_T("Codec"), value, _T(""));
+	property->AllowEdit(FALSE);
+	videoGroup->AddSubItem(property);
+	value = COleVariant(fileName.GetString());
+	property = new CMFCPropertyGridProperty(_T("Filename"), value, _T(""));
+	property->AllowEdit(FALSE);
+	videoGroup->AddSubItem(property);
+	value = COleVariant(fileSizeText.GetString());
+	property = new CMFCPropertyGridProperty(_T("Filesize"), value, _T(""));
+	property->AllowEdit(FALSE);
+	videoGroup->AddSubItem(property);
+	value = COleVariant(frameCountText.GetString());
+	property = new CMFCPropertyGridProperty(_T("Number of frames"), value, _T(""));
+	property->AllowEdit(FALSE);
+	videoGroup->AddSubItem(property);
+
+	m_wndPropList.AddProperty(videoGroup);
+	m_wndPropList.ExpandAll();
+}
+
 CPropertiesWnd::~CPropertiesWnd()
 {
 }
