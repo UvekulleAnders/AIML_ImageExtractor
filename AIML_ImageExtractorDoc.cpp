@@ -16,15 +16,6 @@
 #include <propkey.h>
 #include <atlconv.h>
 
-#if defined(_DEBUG) && defined(_M_X64)
-#define OPENCV_STRINGIZE_DETAIL(value) #value
-#define OPENCV_STRINGIZE(value) OPENCV_STRINGIZE_DETAIL(value)
-#define OPENCV_DEBUG_VERSION OPENCV_STRINGIZE(CV_VERSION_MAJOR) OPENCV_STRINGIZE(CV_VERSION_MINOR) OPENCV_STRINGIZE(CV_VERSION_REVISION)
-#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_core" OPENCV_DEBUG_VERSION "d.lib")
-#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_videoio" OPENCV_DEBUG_VERSION "d.lib")
-#pragma comment(lib, "C:\\opencv\\opencv\\out\\install\\x64-Debug\\x64\\vc18\\lib\\opencv_imgproc" OPENCV_DEBUG_VERSION "d.lib")
-#endif
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif

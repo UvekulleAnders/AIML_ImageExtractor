@@ -23,25 +23,36 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 
 ## Building
 
-1. Install or build OpenCV 4.14 (modules linked: `core`, `imgproc`, `highgui`, `video`, `videoio`).
+1. Build OpenCV 4.14 (modules linked: `core`, `imgproc`, `highgui`, `video`, `videoio`) and install it into one folder per configuration:
+
+   ```
+   C:\opencv\opencv\out\install\
+   ├─ x64-Debug\
+   │  ├─ include\
+   │  └─ x64\vc18\lib\
+   └─ x64-Release\
+      ├─ include\
+      └─ x64\vc18\lib\
+   ```
+
 2. Open `AIML_ImageExtractor.slnx` in Visual Studio, or build from the command line:
 
    ```powershell
-   msbuild AIML_ImageExtractor.slnx /p:Configuration=Release /p:Platform=x64 /p:OpenCV_DIR=C:\opencv\build
+   msbuild AIML_ImageExtractor.vcxproj /p:Configuration=Release /p:Platform=x64
    ```
 
 OpenCV is configured through MSBuild properties in `AIML_ImageExtractor.vcxproj`:
 
 | Property | Meaning | Default |
 |----------|---------|---------|
-| `OpenCV_DIR` | OpenCV build directory (the one containing `include`) | none, must be set |
+| `OpenCV_DIR` | Base folder that contains the `x64-Debug` and `x64-Release` installs | `C:\opencv\opencv\out\install` |
+| `OpenCVBaseDir` | Install folder for the active configuration | `$(OpenCV_DIR)\x64-Debug` or `$(OpenCV_DIR)\x64-Release` |
+| `OpenCVIncludeDir` | Include folder | `$(OpenCVBaseDir)\include` |
+| `OpenCVLibraryDir` | Library folder | `$(OpenCVBaseDir)\x64\vc18\lib` |
 | `OpenCVVersion` | Library version suffix | `4140` |
 | `OpenCV_VC` | Visual C++ folder name in the OpenCV layout | `vc18` |
-| `OpenCVLibraryDir` | Library folder | `$(OpenCV_DIR)\<x86\|x64>\<OpenCV_VC>\lib` |
 
-Override `OpenCVVersion`, `OpenCV_VC` or `OpenCVLibraryDir` when your OpenCV installation differs. Debug builds link the debug libraries and Release builds link the release libraries.
-
-
+Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\opencv`. Debug builds link the `*d.lib` libraries and Release builds link the release libraries.
 ## Usage
 
 1. Start the application and choose **File > Open**.
