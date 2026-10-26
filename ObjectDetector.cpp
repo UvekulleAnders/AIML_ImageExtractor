@@ -118,9 +118,11 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const s
 			bgr = frame;
 		const cv::Rect bounds(0, 0, bgr.cols, bgr.rows);
 
+		const float strongScore = hints.empty() ? minScore : std::min(minScore, 0.10f);
+		const float weakScore = 0.03f; // blurred or distant birds score low; keep them as unconfirmed
 		std::vector<cv::Rect> boxes;
 		std::vector<float> scores;
-		RunModel(bgr, cv::Point(0, 0), minScore, boxes, scores);
+		RunModel(bgr, cv::Point(0, 0), weakScore, boxes, scores);
 
 		if (hints.empty())
 		{
@@ -130,7 +132,7 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const s
 				for (int tx = 0; tx < 2; ++tx)
 				{
 					const cv::Rect tile(tx * (bgr.cols - tileW), ty * (bgr.rows - tileH), tileW, tileH);
-					RunModel(bgr(tile), tile.tl(), minScore, boxes, scores);
+					RunModel(bgr(tile), tile.tl(), weakScore, boxes, scores);
 				}
 		}
 		else
@@ -144,17 +146,24 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const s
 				cv::Rect crop(centre.x - side / 2, centre.y - side / 2, side, side);
 				crop.x = std::max(0, std::min(crop.x, bgr.cols - side));
 				crop.y = std::max(0, std::min(crop.y, bgr.rows - side));
-				RunModel(bgr(crop), crop.tl(), std::min(minScore, 0.10f), boxes, scores);
+				RunModel(bgr(crop), crop.tl(), weakScore, boxes, scores);
 			}
 		}
 
 		for (cv::Rect& box : boxes)
 			box &= bounds;
 		std::vector<int> keep;
-		cv::dnn::NMSBoxes(boxes, scores, std::min(minScore, 0.10f), 0.45f, keep);
+		cv::dnn::NMSBoxes(boxes, scores, weakScore, 0.45f, keep);
+		std::vector<cv::Rect> weak;
 		for (int index : keep)
 			if (boxes[index].width >= 8 && boxes[index].height >= 8)
-				result.push_back(boxes[index]);
+			{
+				if (scores[index] >= strongScore)
+					result.push_back(boxes[index]);
+				else if (weak.size() < 4)
+					weak.push_back(boxes[index]);
+			}
+		unconfirmed = weak;
 
 		for (const cv::Rect& hint : hints)
 		{
@@ -163,7 +172,14 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const s
 				if (!(bird & hint).empty())
 					confirmed = true;
 			if (!confirmed)
-				unconfirmed.push_back(hint);
+			{
+				bool dup = false;
+				for (const cv::Rect& u : unconfirmed)
+					if (!(u & hint).empty())
+						dup = true;
+				if (!dup)
+					unconfirmed.push_back(hint);
+			}
 		}
 
 		auto widen = [&](cv::Rect& box)
