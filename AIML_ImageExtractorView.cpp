@@ -192,6 +192,23 @@ void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
 		pDC->SelectObject(oldBrush);
 		pDC->SelectObject(oldPen);
 	}
+
+	// Motion candidates the detector could not confirm (orange); click one to store it.
+	if (!pDoc->GetCandidates().empty())
+	{
+		CPen pen(PS_SOLID, 1, RGB(255, 140, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		for (const cv::Rect& box : pDoc->GetCandidates())
+		{
+			pDC->Rectangle(drawRect.left + static_cast<int>(box.x * scale),
+				drawRect.top + static_cast<int>(box.y * scale),
+				drawRect.left + static_cast<int>((box.x + box.width) * scale),
+				drawRect.top + static_cast<int>((box.y + box.height) * scale));
+		}
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
 }
 
 void CAIMLImageExtractorView::OnImageDetect()
@@ -307,7 +324,9 @@ void CAIMLImageExtractorView::OnLButtonUp(UINT nFlags, CPoint point)
 			else if (pDoc != nullptr)
 			{
 				// A plain click inside a detected bird stores that bird.
-				for (const cv::Rect& box : pDoc->GetDetections())
+				std::vector<cv::Rect> clickable = pDoc->GetDetections();
+				clickable.insert(clickable.end(), pDoc->GetCandidates().begin(), pDoc->GetCandidates().end());
+				for (const cv::Rect& box : clickable)
 				{
 					if (box.contains(cv::Point(end.x, end.y)))
 					{

@@ -237,6 +237,7 @@
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="SpeciesDatabase.h" />
     <ClInclude Include="ObjectDetector.h" />
+    <ClInclude Include="MotionCandidates.h" />
     <ClInclude Include="DatasetExporter.h" />
     <ClInclude Include="AssignSpeciesDlg.h" />
     <ClInclude Include="WikipediaLookup.h" />
@@ -262,6 +263,7 @@
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="SpeciesDatabase.cpp" />
     <ClCompile Include="ObjectDetector.cpp" />
+    <ClCompile Include="MotionCandidates.cpp" />
     <ClCompile Include="DatasetExporter.cpp" />
     <ClCompile Include="AssignSpeciesDlg.cpp" />
     <ClCompile Include="WikipediaLookup.cpp" />

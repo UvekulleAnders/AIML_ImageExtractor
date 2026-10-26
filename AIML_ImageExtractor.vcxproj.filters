@@ -60,6 +60,12 @@
     <ClInclude Include="SpeciesDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MotionCandidates.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClCompile Include="MotionCandidates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClInclude Include="ObjectDetector.h">
       <Filter>Header Files</Filter>
     </ClInclude>

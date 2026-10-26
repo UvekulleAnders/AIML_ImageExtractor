@@ -8,6 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include "ObjectDetector.h"
+#include "MotionCandidates.h"
 
 
 class CAIMLImageExtractorDoc : public CDocument
@@ -39,6 +40,8 @@ public:
 	// Finds birds in the current frame; the boxes are kept until the frame changes.
 	bool DetectObjects();
 	const std::vector<cv::Rect>& GetDetections() const { return m_detections; }
+	// Motion candidates that the detector did not confirm as birds.
+	const std::vector<cv::Rect>& GetCandidates() const { return m_candidates; }
 	// Automatic generation: stores one image per detected bird in the current frame.
 	bool AutoExtract();
 	bool GetAutoDetect() const { return m_autoDetect; }
@@ -65,6 +68,9 @@ protected:
 	bool m_seekable = true;
 	CObjectDetector m_detector;
 	std::vector<cv::Rect> m_detections;
+	std::vector<cv::Rect> m_candidates;
+	CMotionCandidates m_motion;
+	void BuildMotionHistory();
 	bool m_autoDetect = false;
 	CStringA m_filePath;
 	bool ReopenVideo();

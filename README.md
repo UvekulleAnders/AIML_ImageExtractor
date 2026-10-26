@@ -27,6 +27,7 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 - Visual Studio with the **Desktop development with C++** workload and the **C++ MFC** component (the project uses platform toolset `v145`)
 - OpenCV 4.14, with its `include` and library folders available on disk
 
+- **Motion candidates:** a background learned from the previous 30 frames (colour change in Lab) finds small changed regions; each is zoomed and checked by YOLOX. Unconfirmed candidates are orange. Boxes get a 3 pixel padding.
 - Bird detection needs the YOLOX model (about 36 MB, not stored in git): download https://huggingface.co/opencv/object_detection_yolox/resolve/main/object_detection_yolox_2022nov.onnx into a `models` folder in the repository root (or next to the exe). OpenCV must include the `dnn` module.
 ## Building
 

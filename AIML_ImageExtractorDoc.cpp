@@ -126,11 +126,57 @@ bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
 	m_nextFrameIndex = frameIndex + 1.0;
 	m_currentFrame = frame;
 	m_currentFrameIndex = frameIndex;
+	m_motion.Push(frame, frameIndex);
 	m_detections.clear();
+	m_candidates.clear();
 	if (m_autoDetect)
 		DetectObjects();
 	UpdateAllViews(nullptr);
 	return true;
+}
+
+// Makes sure the motion history holds the frames just before the current one.
+void CAIMLImageExtractorDoc::BuildMotionHistory()
+{
+	const double index = m_currentFrameIndex;
+	if (m_motion.LastIndex() == index && m_motion.Count() >= 7)
+		return;
+	m_motion.Clear();
+	if (index < 1.0 || !m_video.isOpened())
+	{
+		m_motion.Push(m_currentFrame, index);
+		return;
+	}
+
+	const double start = index - CMotionCandidates::kMaxFrames > 0.0 ? index - CMotionCandidates::kMaxFrames : 0.0;
+	bool positioned = false;
+	if (m_seekable)
+		positioned = m_video.set(cv::CAP_PROP_POS_FRAMES, start);
+	else
+	{
+		positioned = start >= m_nextFrameIndex || ReopenVideo();
+		while (positioned && m_nextFrameIndex < start)
+		{
+			positioned = m_video.grab();
+			m_nextFrameIndex += 1.0;
+		}
+	}
+	if (positioned)
+	{
+		cv::Mat frame;
+		for (double i = start; i < index; i += 1.0)
+		{
+			if (!m_video.read(frame) || frame.empty())
+				break;
+			m_motion.Push(frame, i);
+		}
+	}
+	m_nextFrameIndex = start + m_motion.Count();
+	m_motion.Push(m_currentFrame, index);
+	// Keep the sequential position consistent with what the next MoveToFrame expects.
+	if (m_seekable)
+		m_video.set(cv::CAP_PROP_POS_FRAMES, index + 1.0);
+	m_nextFrameIndex = index + 1.0;
 }
 
 bool CAIMLImageExtractorDoc::ReopenVideo()
@@ -157,6 +203,7 @@ bool CAIMLImageExtractorDoc::DetectObjects()
 {
 	CFrameWnd* mainFrame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd());
 	m_detections.clear();
+	m_candidates.clear();
 	if (m_currentFrame.empty())
 		return false;
 	CWaitCursor wait;
@@ -167,11 +214,14 @@ bool CAIMLImageExtractorDoc::DetectObjects()
 		m_autoDetect = false;
 		return false;
 	}
-	m_detections = m_detector.DetectBirds(m_currentFrame);
+	BuildMotionHistory();
+	const std::vector<cv::Rect> hints = m_motion.Find();
+	m_detections = m_detector.DetectBirds(m_currentFrame, hints, m_candidates);
 	if (mainFrame != nullptr)
 	{
 		CString message;
-		message.Format(_T("Frame %.0f: %d bird(s) detected"), m_currentFrameIndex, static_cast<int>(m_detections.size()));
+		message.Format(_T("Frame %.0f: %d bird(s) detected, %d unconfirmed motion candidate(s)"), m_currentFrameIndex,
+			static_cast<int>(m_detections.size()), static_cast<int>(m_candidates.size()));
 		mainFrame->SetMessageText(message);
 	}
 	UpdateAllViews(nullptr);

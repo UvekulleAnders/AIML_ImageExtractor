@@ -99,9 +99,11 @@ void CObjectDetector::RunModel(const cv::Mat& bgr, const cv::Point& offset, floa
 	}
 }
 
-std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, float minScore)
+std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const std::vector<cv::Rect>& hints,
+	std::vector<cv::Rect>& unconfirmed, float minScore)
 {
 	std::vector<cv::Rect> result;
+	unconfirmed.clear();
 	if (frame.empty() || !EnsureLoaded())
 		return result;
 
@@ -114,33 +116,70 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, float m
 			cv::cvtColor(frame, bgr, cv::COLOR_BGRA2BGR);
 		else
 			bgr = frame;
+		const cv::Rect bounds(0, 0, bgr.cols, bgr.rows);
 
 		std::vector<cv::Rect> boxes;
 		std::vector<float> scores;
 		RunModel(bgr, cv::Point(0, 0), minScore, boxes, scores);
 
-		// Birds at a feeder are small: also scan 2x2 overlapping tiles so they are seen at a larger scale.
-		const int tileW = bgr.cols * 3 / 5, tileH = bgr.rows * 3 / 5;
-		for (int ty = 0; ty < 2; ++ty)
-			for (int tx = 0; tx < 2; ++tx)
+		if (hints.empty())
+		{
+			// No motion info (e.g. a still bird): scan 2x2 overlapping tiles so small birds appear larger.
+			const int tileW = bgr.cols * 3 / 5, tileH = bgr.rows * 3 / 5;
+			for (int ty = 0; ty < 2; ++ty)
+				for (int tx = 0; tx < 2; ++tx)
+				{
+					const cv::Rect tile(tx * (bgr.cols - tileW), ty * (bgr.rows - tileH), tileW, tileH);
+					RunModel(bgr(tile), tile.tl(), minScore, boxes, scores);
+				}
+		}
+		else
+		{
+			// Zoom in on each motion candidate: a square crop with context, upscaled by the letterbox.
+			for (const cv::Rect& hint : hints)
 			{
-				const cv::Rect tile(tx * (bgr.cols - tileW), ty * (bgr.rows - tileH), tileW, tileH);
-				RunModel(bgr(tile), tile.tl(), minScore, boxes, scores);
+				int side = std::max(96, std::max(hint.width, hint.height) * 3 / 2);
+				side = std::min(side, std::min(bgr.cols, bgr.rows));
+				const cv::Point centre(hint.x + hint.width / 2, hint.y + hint.height / 2);
+				cv::Rect crop(centre.x - side / 2, centre.y - side / 2, side, side);
+				crop.x = std::max(0, std::min(crop.x, bgr.cols - side));
+				crop.y = std::max(0, std::min(crop.y, bgr.rows - side));
+				RunModel(bgr(crop), crop.tl(), std::min(minScore, 0.10f), boxes, scores);
 			}
+		}
 
-		const cv::Rect bounds(0, 0, bgr.cols, bgr.rows);
 		for (cv::Rect& box : boxes)
 			box &= bounds;
 		std::vector<int> keep;
-		cv::dnn::NMSBoxes(boxes, scores, minScore, 0.45f, keep);
+		cv::dnn::NMSBoxes(boxes, scores, std::min(minScore, 0.10f), 0.45f, keep);
 		for (int index : keep)
 			if (boxes[index].width >= 8 && boxes[index].height >= 8)
 				result.push_back(boxes[index]);
+
+		for (const cv::Rect& hint : hints)
+		{
+			bool confirmed = false;
+			for (const cv::Rect& bird : result)
+				if (!(bird & hint).empty())
+					confirmed = true;
+			if (!confirmed)
+				unconfirmed.push_back(hint);
+		}
+
+		auto widen = [&](cv::Rect& box)
+		{
+			box = cv::Rect(box.x - m_padding, box.y - m_padding, box.width + 2 * m_padding, box.height + 2 * m_padding) & bounds;
+		};
+		for (cv::Rect& box : result)
+			widen(box);
+		for (cv::Rect& box : unconfirmed)
+			widen(box);
 	}
 	catch (const cv::Exception& e)
 	{
 		m_lastError = CString(_T("Detection failed: ")) + CString(e.what());
 		result.clear();
+		unconfirmed.clear();
 	}
 	return result;
 }
