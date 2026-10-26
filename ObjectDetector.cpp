@@ -99,6 +99,46 @@ void CObjectDetector::RunModel(const cv::Mat& bgr, const cv::Point& offset, floa
 	}
 }
 
+// A motion blob often covers only the moving part of the bird: segment the colour region around it with GrabCut.
+static cv::Rect GrowBlob(const cv::Mat& bgr, const cv::Rect& hint)
+{
+	try
+	{
+		const int margin = std::max(40, std::max(hint.width, hint.height));
+		const cv::Rect bounds(0, 0, bgr.cols, bgr.rows);
+		const cv::Rect win = cv::Rect(hint.x - margin, hint.y - margin, hint.width + 2 * margin, hint.height + 2 * margin) & bounds;
+		if (win.width < 24 || win.height < 24)
+			return hint;
+		cv::Mat mask(win.size(), CV_8UC1, cv::Scalar(cv::GC_PR_BGD));
+		const cv::Rect local = (hint & win) - win.tl();
+		mask(local).setTo(cv::GC_PR_FGD);
+		const cv::Rect core(local.x + local.width / 4, local.y + local.height / 4, std::max(1, local.width / 2), std::max(1, local.height / 2));
+		mask(core).setTo(cv::GC_FGD);
+		const int edge = 4;
+		mask.rowRange(0, edge).setTo(cv::GC_BGD);
+		mask.rowRange(win.height - edge, win.height).setTo(cv::GC_BGD);
+		mask.colRange(0, edge).setTo(cv::GC_BGD);
+		mask.colRange(win.width - edge, win.width).setTo(cv::GC_BGD);
+		cv::Mat bg, fg;
+		cv::grabCut(bgr(win), mask, cv::Rect(), bg, fg, 3, cv::GC_INIT_WITH_MASK);
+		cv::Mat fgMask = (mask == cv::GC_FGD) | (mask == cv::GC_PR_FGD);
+		cv::Mat labels, stats, centroids;
+		const int n = cv::connectedComponentsWithStats(fgMask, labels, stats, centroids);
+		const int id = labels.at<int>(core.y + core.height / 2, core.x + core.width / 2);
+		if (id <= 0 || n < 2)
+			return hint;
+		const cv::Rect grown(stats.at<int>(id, cv::CC_STAT_LEFT), stats.at<int>(id, cv::CC_STAT_TOP),
+			stats.at<int>(id, cv::CC_STAT_WIDTH), stats.at<int>(id, cv::CC_STAT_HEIGHT));
+		if (grown.area() > 12 * hint.area() + 2000)
+			return hint;
+		return (grown + win.tl()) | hint;
+	}
+	catch (const cv::Exception&)
+	{
+		return hint;
+	}
+}
+
 std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const std::vector<cv::Rect>& hints,
 	std::vector<cv::Rect>& unconfirmed, float minScore)
 {
@@ -178,7 +218,9 @@ std::vector<cv::Rect> CObjectDetector::DetectBirds(const cv::Mat& frame, const s
 					if (!(u & hint).empty())
 						dup = true;
 				if (!dup)
-					unconfirmed.push_back(hint);
+				{
+					unconfirmed.push_back(GrowBlob(bgr, hint));
+				}
 			}
 		}
 
