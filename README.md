@@ -68,6 +68,10 @@ Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\ope
 3. Use the keyboard shortcuts above to move between frames.
 4. Press the left mouse button on the frame, drag to draw a rectangle and release. The cropped image is stored in speciesImages.db and the status bar confirms it.
 
+## Unit tests
+
+Build `GTest/AIML_ImageExtractor_Tests.vcxproj` (it is in the solution) and run `GTest\x64\<Configuration>\AIML_ImageExtractor_Tests.exe` with the OpenCV `bin` folder on `PATH`. The detector test is skipped if the YOLOX model is missing.
+
 ## Project layout
 
 | File(s) | Purpose |
@@ -79,6 +83,7 @@ Set `OpenCV_DIR` to use another location, for example `/p:OpenCV_DIR=D:\libs\ope
 | `AssignSpeciesDlg.cpp/.h` | Dialog that assigns an extracted image to a species or creates a new one |
 | `WikipediaLookup.cpp/.h` | Suggests Latin and English species names from Wikipedia (WinHTTP) |
 | `third_party/sqlite` | SQLite 3.54.1 amalgamation, compiled into the application |
+| `GTest/` | GoogleTest project `AIML_ImageExtractor_Tests` with unit tests for the non-MFC code (vendored GoogleTest in `GTest/googletest`) |
 | `MainFrm`, `ChildFrm` | Main and MDI child frame windows |
 | `PropertiesWnd` | Properties pane with video information |
 | `ClassView`, `FileView`, `OutputWnd`, `ViewTree` | Docking panes from the MFC project template |
