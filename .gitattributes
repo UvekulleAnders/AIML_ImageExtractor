@@ -1,5 +1,5 @@
 ## Visual Studio resource script is UTF-16; store as UTF-8 in the repo so diffs work
-*.rc text working-tree-encoding=UTF-16LE-BOM eol=crlf
+*.rc text working-tree-encoding=UTF-8 eol=crlf
 ## Binary resources
 *.ico binary
 *.bmp binary
