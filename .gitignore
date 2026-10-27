@@ -55,3 +55,5 @@ AIML_Ima.*/
 
 # Detection model (download, see README)
 models/
+/SpeciesModelTrainer/SpeciesModelTrainer.txt
+/SpeciesModelTrainer/SpeciesModelTrainer.rc
