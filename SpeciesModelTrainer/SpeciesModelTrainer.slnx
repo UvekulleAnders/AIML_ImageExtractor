@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="SpeciesModelTrainer.vcxproj" Id="f1afb8f2-38fd-46aa-81ce-210d77e0b135" />
+</Solution>

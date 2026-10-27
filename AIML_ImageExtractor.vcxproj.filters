@@ -78,6 +78,15 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SpeciesModelTrainer\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeciesModelTrainer\SpeciesModelTrainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeciesModelTrainer\TrainerDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AIML_ImageExtractor.cpp">
@@ -131,9 +140,18 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SpeciesModelTrainer\SpeciesModelTrainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SpeciesModelTrainer\TrainerDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AIMLImageExtractor.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="SpeciesModelTrainer\SpeciesModelTrainer.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
@@ -218,5 +236,13 @@
     <None Include="res\AIMLImageExtractor.rc2">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="SpeciesModelTrainer\train_species.py" />
+    <None Include="SpeciesModelTrainer\SpeciesModelTrainer.vcxproj" />
+    <None Include="SpeciesModelTrainer\README.md" />
+    <None Include="SpeciesModelTrainer\SpeciesModelTrainer.slnx" />
+    <None Include="update_requirements_doc.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="SpeciesModelTrainer\requirements.txt" />
   </ItemGroup>
 </Project>

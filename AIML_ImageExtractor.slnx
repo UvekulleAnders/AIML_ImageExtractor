@@ -4,5 +4,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="AIML_ImageExtractor.vcxproj" />
-  <Project Path="GTest/AIML_ImageExtractor_Tests.vcxproj" />
+  <Project Path="GTest/AIML_ImageExtractor_Tests.vcxproj" Id="6b1f0e52-3c7d-4f0a-9e57-2d8a4c1b7a10" />
 </Solution>

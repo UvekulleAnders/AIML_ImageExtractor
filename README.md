@@ -21,6 +21,10 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 - **Automatic extraction:** *Image > Detect birds* (or `D`) outlines birds in the frame in green using a YOLOX model (OpenCV `dnn`); *Image > Auto extract detected birds* (`A`) stores all of them for one chosen species, and clicking a green box stores just that bird. *Detect on every frame* detects while browsing.
 - **Export for machine learning:** *File > Export dataset...* writes one folder per species (`Swedish__Latin`) with `img<id>.png` files plus `manifest.csv` (image_id, file, species_id, swedish, latin, english, source_file, frame, x, y, w, h). The folder-per-class layout loads directly in PyTorch `ImageFolder` / Keras; split train/validation by source video to avoid leakage.
 
+## Species classifier training
+
+The separate dialog-based MFC trainer in `SpeciesModelTrainer/SpeciesModelTrainer.slnx` consumes this export, runs a PyTorch worker, and produces an ONNX model plus a `.labels.json` file. See `SpeciesModelTrainer/README.md` for setup and usage. Runtime recommendations in AIML_ImageExtractor are a later integration step.
+
 ## Requirements
 
 - Windows
