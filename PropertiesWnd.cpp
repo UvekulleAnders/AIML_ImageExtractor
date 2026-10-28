@@ -27,7 +27,7 @@ void CPropertiesWnd::SetVideoProperties(const CString& fileName, const CString& 
 		return;
 
 	m_wndPropList.RemoveAll();
-	CMFCPropertyGridProperty* videoGroup = new CMFCPropertyGridProperty(_T("Video"));
+	CMFCPropertyGridProperty* videoGroup = new CMFCPropertyGridProperty(_T("Source"));
 	CString fileSizeText;
 	fileSizeText.Format(_T("%I64u bytes"), fileSize);
 	CString frameCountText;

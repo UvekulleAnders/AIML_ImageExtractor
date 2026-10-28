@@ -50,36 +50,57 @@ BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	m_currentFrame.release();
 	m_frameCount = 0.0;
 	m_currentFrameIndex = 0.0;
+	m_detections.clear();
+	m_candidates.clear();
+	m_motion.Clear();
 
-	CW2A filePath(lpszPathName);
+	CString path(lpszPathName);
+	m_stillImage = path.Right(4).CompareNoCase(_T(".jpg")) == 0
+		|| path.Right(5).CompareNoCase(_T(".jpeg")) == 0;
+	CW2A filePath(lpszPathName, CP_UTF8);
 	m_filePath = static_cast<LPCSTR>(filePath);
 	m_seekable = true;
-	if (!ReopenVideo())
+	if (m_stillImage)
 	{
-		AfxMessageBox(_T("OpenCV could not open this video file."), MB_ICONERROR);
-		return FALSE;
+		m_currentFrame = cv::imread(std::string(m_filePath.GetString()), cv::IMREAD_COLOR);
+		if (m_currentFrame.empty())
+		{
+			m_stillImage = false;
+			AfxMessageBox(_T("OpenCV could not open this JPEG image."), MB_ICONERROR);
+			return FALSE;
+		}
+		m_frameCount = 1.0;
 	}
-
-	m_frameCount = m_video.get(cv::CAP_PROP_FRAME_COUNT);
-	if (m_frameCount <= 0.0)
+	else
 	{
-		// Raw streams (e.g. .h264) carry no frame count or seek index, so count by decoding.
-		CWaitCursor waitCursor;
-		m_seekable = false;
-		double frames = 0.0;
-		while (m_video.grab())
-			frames += 1.0;
-		m_frameCount = frames;
 		if (!ReopenVideo())
 		{
-			AfxMessageBox(_T("OpenCV could not reopen this video file."), MB_ICONERROR);
+			AfxMessageBox(_T("OpenCV could not open this video file."), MB_ICONERROR);
 			return FALSE;
+		}
+
+		m_frameCount = m_video.get(cv::CAP_PROP_FRAME_COUNT);
+		if (m_frameCount <= 0.0)
+		{
+			// Raw streams (e.g. .h264) carry no frame count or seek index, so count by decoding.
+			CWaitCursor waitCursor;
+			m_seekable = false;
+			double frames = 0.0;
+			while (m_video.grab())
+				frames += 1.0;
+			m_frameCount = frames;
+			if (!ReopenVideo())
+			{
+				AfxMessageBox(_T("OpenCV could not reopen this video file."), MB_ICONERROR);
+				return FALSE;
+			}
 		}
 	}
 	if (!MoveToFrame(0.0))
 	{
 		m_video.release();
-		AfxMessageBox(_T("The video opened, but no frame could be read."), MB_ICONERROR);
+		m_stillImage = false;
+		AfxMessageBox(_T("The file opened, but no image could be read."), MB_ICONERROR);
 		return FALSE;
 	}
 
@@ -87,7 +108,7 @@ BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	ULONGLONG fileSize = CFile::GetStatus(lpszPathName, fileStatus) ? fileStatus.m_size : 0;
 	CMainFrame* mainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
 	if (mainFrame != nullptr)
-		mainFrame->SetVideoProperties(lpszPathName, GetVideoCodec(), fileSize, m_frameCount);
+		mainFrame->SetVideoProperties(lpszPathName, m_stillImage ? _T("JPEG") : GetVideoCodec(), fileSize, m_frameCount);
 
 	UpdateAllViews(nullptr);
 	return TRUE;
@@ -95,6 +116,22 @@ BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 
 bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
 {
+	if (m_stillImage)
+	{
+		if (m_currentFrame.empty() || m_frameCount <= 0.0)
+			return false;
+		m_currentFrameIndex = 0.0;
+		m_motion.Clear();
+		m_motion.Push(m_currentFrame, 0.0);
+		m_detections.clear();
+		m_candidates.clear();
+		if (CMainFrame* mainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd()))
+			mainFrame->SetFrameProgress(m_currentFrameIndex, m_frameCount);
+		if (m_autoDetect)
+			DetectObjects();
+		UpdateAllViews(nullptr);
+		return true;
+	}
 	if (!m_video.isOpened() || m_frameCount <= 0.0)
 		return false;
 	if (frameIndex < 0)
