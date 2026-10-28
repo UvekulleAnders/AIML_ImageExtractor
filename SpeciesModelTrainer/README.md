@@ -2,6 +2,8 @@
 
 A dialog-based MFC front end for training a bird-species image classifier from an AIML_ImageExtractor dataset export. Training runs in a separate Python/PyTorch process; the MFC application remains responsive and displays its output.
 
+Architecture, the mapping from the dataset export to the ONNX model, and error reporting are described in [Documents/TrainerApplication.docx](../Documents/TrainerApplication.docx).
+
 ## Requirements
 
 - Visual Studio with the Desktop development with C++ workload and MFC component.
@@ -26,7 +28,7 @@ The worker splits by source video rather than by individual frame. Every species
 
 ## Troubleshooting
 
-Failures are reported in the **Training log** box of the trainer dialog (the large read-only text area below the Epochs/Batch size fields); the line above it shows a short status. The log shows everything the Python worker prints to its standard output and error, including Python tracebacks. There is no separate log file.
+Failures are reported in the **Training log** box of the trainer dialog (the large read-only text area below the Epochs/Batch size fields); the line below it shows a short status. The log shows everything the Python worker prints to its standard output and error, including Python tracebacks. There is no separate log file.
 
 - `No module named PIL` (or `torch`, `torchvision`, `onnx`): a dependency is missing from the Python on `PATH`. Run `python -m pip install -r requirements.txt`. The module `PIL` is installed by the package `Pillow`. If `pip` is not recognised, use `python -m pip`.
 - If the log shows nothing, run the worker directly (see below) in a terminal to see its output.
