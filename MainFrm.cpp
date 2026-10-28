@@ -5,6 +5,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "AIML_ImageExtractor.h"
+#include "Resource.h"
 
 #include "MainFrm.h"
 
@@ -33,10 +34,72 @@ END_MESSAGE_MAP()
 static UINT indicators[] =
 {
 	ID_SEPARATOR,           // status line indicator
+	ID_INDICATOR_FRAME_PROGRESS,
 	ID_INDICATOR_CAPS,
 	ID_INDICATOR_NUM,
 	ID_INDICATOR_SCRL,
 };
+
+BEGIN_MESSAGE_MAP(CFrameProgressIndicator, CWnd)
+	ON_WM_PAINT()
+END_MESSAGE_MAP()
+
+BOOL CFrameProgressIndicator::Create(CWnd* parent, const CRect& rect)
+{
+	LPCTSTR className = AfxRegisterWndClass(CS_HREDRAW | CS_VREDRAW, nullptr,
+		(HBRUSH)(COLOR_3DFACE + 1), nullptr);
+	return CreateEx(0, className, _T(""), WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+		rect, parent, IDC_FRAME_PROGRESS_CONTROL);
+}
+
+void CFrameProgressIndicator::SetFrame(double frameIndex, double frameCount)
+{
+	m_frameIndex = frameIndex;
+	m_frameCount = frameCount;
+	if (GetSafeHwnd() != nullptr)
+		Invalidate(FALSE);
+}
+
+void CFrameProgressIndicator::OnPaint()
+{
+	CPaintDC dc(this);
+	CRect client;
+	GetClientRect(client);
+	dc.FillSolidRect(client, ::GetSysColor(COLOR_3DFACE));
+
+	CRect content(client);
+	content.DeflateRect(4, 1);
+	CString label;
+	if (m_frameCount > 0.0)
+		label.Format(_T("Frame %I64u / %I64u"), static_cast<ULONGLONG>(m_frameIndex) + 1,
+			static_cast<ULONGLONG>(m_frameCount));
+	else
+		label = _T("No video");
+
+	CRect textRect(content);
+	textRect.bottom -= 5;
+	dc.SetBkMode(TRANSPARENT);
+	dc.SetTextColor(::GetSysColor(COLOR_BTNTEXT));
+	dc.DrawText(label, textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+	CRect progressRect(content.left, content.bottom - 3, content.right, content.bottom);
+	dc.FillSolidRect(progressRect, RGB(205, 205, 205));
+	if (m_frameCount > 0.0 && !progressRect.IsRectEmpty())
+	{
+		double fraction = m_frameCount > 1.0 ? m_frameIndex / (m_frameCount - 1.0) : 1.0;
+		if (fraction < 0.0)
+			fraction = 0.0;
+		if (fraction > 1.0)
+			fraction = 1.0;
+		int width = static_cast<int>(progressRect.Width() * fraction);
+		if (width < 2)
+			width = 2;
+		if (width > progressRect.Width())
+			width = progressRect.Width();
+		CRect filled(progressRect.left, progressRect.top, progressRect.left + width, progressRect.bottom);
+		dc.FillSolidRect(filled, RGB(220, 0, 0));
+	}
+}
 
 // CMainFrame construction/destruction
 
@@ -102,6 +165,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 	m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT));
+	m_wndStatusBar.SetPaneInfo(1, ID_INDICATOR_FRAME_PROGRESS, SBPS_NORMAL, 180);
+	CRect progressRect;
+	m_wndStatusBar.GetItemRect(1, &progressRect);
+	progressRect.DeflateRect(3, 3);
+	if (!m_wndFrameProgress.Create(&m_wndStatusBar, progressRect))
+		return -1;
+	m_wndFrameProgress.SetFrame(0.0, 0.0);
 
 	// TODO: Delete these five lines if you don't want the toolbar and menubar to be dockable
 	m_wndMenuBar.EnableDocking(CBRS_ALIGN_ANY);
@@ -125,6 +195,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		TRACE0("Failed to create docking windows\n");
 		return -1;
 	}
+
+
 
 	m_wndFileView.EnableDocking(CBRS_ALIGN_ANY);
 	m_wndClassView.EnableDocking(CBRS_ALIGN_ANY);
@@ -193,6 +265,20 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
+void CMainFrame::SetFrameProgress(double frameIndex, double frameCount)
+{
+	m_wndFrameProgress.SetFrame(frameIndex, frameCount);
+}
+
+void CMainFrame::PositionFrameProgress()
+{
+	if (m_wndFrameProgress.GetSafeHwnd() == nullptr || m_wndStatusBar.GetSafeHwnd() == nullptr)
+		return;
+	CRect progressRect;
+	m_wndStatusBar.GetItemRect(1, &progressRect);
+	progressRect.DeflateRect(3, 3);
+	m_wndFrameProgress.MoveWindow(progressRect);
+}
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 	if( !CMDIFrameWndEx::PreCreateWindow(cs) )
@@ -290,6 +376,12 @@ void CMainFrame::Dump(CDumpContext& dc) const
 
 
 // CMainFrame message handlers
+
+void CMainFrame::OnSize(UINT nType, int cx, int cy)
+{
+	CMDIFrameWndEx::OnSize(nType, cx, cy);
+	PositionFrameProgress();
+}
 
 void CMainFrame::OnWindowManager()
 {

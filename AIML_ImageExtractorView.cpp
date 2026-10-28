@@ -209,6 +209,43 @@ void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
 		pDC->SelectObject(oldBrush);
 		pDC->SelectObject(oldPen);
 	}
+
+	// Show frame progress in the video viewport.
+	CRect progressPanel(clientRect.left + 8, clientRect.bottom - 30,
+		clientRect.right - 8, clientRect.bottom - 5);
+	if (progressPanel.Width() > 20 && progressPanel.Height() > 0)
+	{
+		pDC->FillSolidRect(progressPanel, RGB(40, 40, 40));
+
+		CString label;
+		label.Format(_T("Frame %I64u / %I64u"),
+			static_cast<ULONGLONG>(pDoc->GetCurrentFrameIndex()) + 1,
+			static_cast<ULONGLONG>(pDoc->GetFrameCount()));
+		CRect labelRect(progressPanel);
+		labelRect.DeflateRect(6, 2);
+		labelRect.bottom -= 8;
+		pDC->SetBkMode(TRANSPARENT);
+		pDC->SetTextColor(RGB(255, 255, 255));
+		pDC->DrawText(label, labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+		CRect track(progressPanel.left + 6, progressPanel.bottom - 7,
+			progressPanel.right - 6, progressPanel.bottom - 4);
+		pDC->FillSolidRect(track, RGB(205, 205, 205));
+		double fraction = pDoc->GetFrameCount() > 1.0
+			? pDoc->GetCurrentFrameIndex() / (pDoc->GetFrameCount() - 1.0)
+			: 1.0;
+		if (fraction < 0.0)
+			fraction = 0.0;
+		if (fraction > 1.0)
+			fraction = 1.0;
+		int width = static_cast<int>(track.Width() * fraction);
+		if (width < 2)
+			width = 2;
+		if (width > track.Width())
+			width = track.Width();
+		pDC->FillSolidRect(CRect(track.left, track.top, track.left + width, track.bottom),
+			RGB(220, 0, 0));
+	}
 }
 
 void CAIMLImageExtractorView::OnImageDetect()
@@ -357,7 +394,7 @@ void CAIMLImageExtractorView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		switch (nChar)
 		{
 		case VK_LEFT:
-			pDoc->MoveToFrame(currentFrame - 1.0);
+			pDoc->MoveToFrame(currentFrame - 10.0);
 			return;
 		case VK_RIGHT:
 			pDoc->MoveToFrame(currentFrame + 1.0);

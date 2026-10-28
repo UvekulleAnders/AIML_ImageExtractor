@@ -4,6 +4,8 @@ A dialog-based MFC front end for training a bird-species image classifier from a
 
 Architecture, the mapping from the dataset export to the ONNX model, and error reporting are described in [Documents/TrainerApplication.docx](../Documents/TrainerApplication.docx).
 
+Build and run the SpeciesModelTrainer project from the root `AIML_ImageExtractor.slnx` solution.
+
 ## Requirements
 
 - Visual Studio with the Desktop development with C++ workload and MFC component.

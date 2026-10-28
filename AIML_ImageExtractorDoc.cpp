@@ -126,6 +126,9 @@ bool CAIMLImageExtractorDoc::MoveToFrame(double frameIndex)
 	m_nextFrameIndex = frameIndex + 1.0;
 	m_currentFrame = frame;
 	m_currentFrameIndex = frameIndex;
+	CMainFrame* mainFrame = DYNAMIC_DOWNCAST(CMainFrame, AfxGetMainWnd());
+	if (mainFrame != nullptr)
+		mainFrame->SetFrameProgress(m_currentFrameIndex, m_frameCount);
 	m_motion.Push(frame, frameIndex);
 	m_detections.clear();
 	m_candidates.clear();

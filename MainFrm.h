@@ -8,6 +8,21 @@
 #include "OutputWnd.h"
 #include "PropertiesWnd.h"
 
+class CFrameProgressIndicator : public CWnd
+{
+public:
+	BOOL Create(CWnd* parent, const CRect& rect);
+	void SetFrame(double frameIndex, double frameCount);
+
+protected:
+	afx_msg void OnPaint();
+	DECLARE_MESSAGE_MAP()
+
+private:
+	double m_frameIndex = 0.0;
+	double m_frameCount = 0.0;
+};
+
 class CMainFrame : public CMDIFrameWndEx
 {
 	DECLARE_DYNAMIC(CMainFrame)
@@ -26,6 +41,7 @@ public:
 	virtual BOOL LoadFrame(UINT nIDResource, DWORD dwDefaultStyle = WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, CWnd* pParentWnd = nullptr, CCreateContext* pContext = nullptr);
 	void RefreshSpeciesView() { m_wndClassView.FillClassView(); }
 	void SetVideoProperties(const CString& fileName, const CString& codec, ULONGLONG fileSize, double frameCount);
+	void SetFrameProgress(double frameIndex, double frameCount);
 
 // Implementation
 public:
@@ -44,10 +60,12 @@ protected:  // control bar embedded members
 	CClassView        m_wndClassView;
 	COutputWnd        m_wndOutput;
 	CPropertiesWnd    m_wndProperties;
+	CFrameProgressIndicator m_wndFrameProgress;
 
 // Generated message map functions
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnWindowManager();
 	afx_msg void OnViewCustomize();
 	afx_msg LRESULT OnToolbarCreateNew(WPARAM wp, LPARAM lp);
@@ -58,6 +76,7 @@ protected:
 
 	BOOL CreateDockingWindows();
 	void SetDockingWindowIcons(BOOL bHiColorIcons);
+	void PositionFrameProgress();
 };
 
 
