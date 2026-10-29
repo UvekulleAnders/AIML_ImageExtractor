@@ -4,7 +4,7 @@ A Windows desktop application for browsing a video frame by frame, built with MF
 
 ## Features
 
-- Open common video formats: AVI, MP4, MKV, MOV, WMV, FLV, MPEG/MPG, M4V and WebM (decoded through OpenCV's FFmpeg backend).
+- Open common video formats: AVI, MP4, MKV, MOV, WMV, FLV, MPEG/MPG, M4V, WebM and raw H.264 (decoded through OpenCV's FFmpeg backend), as well as single JPEG images. Drop `.jpg`, `.mp4` or `.h264` files on the application window to open them.
 - View the current frame, scaled to fit the window.
 - Step through the video with the keyboard:
 
