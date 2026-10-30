@@ -67,8 +67,8 @@ CAIMLImageExtractorApp theApp;
 void CAIMLImageExtractorApp::OnFileOpen()
 {
 	static const TCHAR filter[] =
-		_T("Video Files (*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264)\0")
-		_T("*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264\0")
+		_T("Video and Image Files (*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264;*.jpg;*.jpeg)\0")
+		_T("*.avi;*.mp4;*.mkv;*.mov;*.wmv;*.flv;*.mpeg;*.mpg;*.m4v;*.webm;*.h264;*.264;*.jpg;*.jpeg\0")
 		_T("JPEG Images (*.jpg;*.jpeg)\0*.jpg;*.jpeg\0")
 		_T("All Files (*.*)\0*.*\0\0");
 	CFileDialog dialog(TRUE, nullptr, nullptr,
@@ -183,7 +183,7 @@ BOOL CAIMLImageExtractorApp::InitInstance()
 		return FALSE;
 	}
 	m_pMainWnd = pMainFrame;
-
+	pMainFrame->DragAcceptFiles();
 
 	// Parse command line for standard shell commands, DDE, file open
 	CCommandLineInfo cmdInfo;

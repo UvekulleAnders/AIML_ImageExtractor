@@ -29,7 +29,38 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWndEx)
 	ON_COMMAND_RANGE(ID_VIEW_APPLOOK_WIN_2000, ID_VIEW_APPLOOK_WINDOWS_7, &CMainFrame::OnApplicationLook)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_APPLOOK_WIN_2000, ID_VIEW_APPLOOK_WINDOWS_7, &CMainFrame::OnUpdateApplicationLook)
 	ON_WM_SETTINGCHANGE()
+	ON_WM_DROPFILES()
 END_MESSAGE_MAP()
+
+void CMainFrame::OnDropFiles(HDROP hDropInfo)
+{
+	static const TCHAR* const supported[] = { _T(".jpg"), _T(".mp4"), _T(".h264") };
+	const UINT count = ::DragQueryFile(hDropInfo, 0xFFFFFFFF, nullptr, 0);
+	CStringArray accepted;
+	int rejected = 0;
+	for (UINT i = 0; i < count; ++i)
+	{
+		CString path;
+		const UINT length = ::DragQueryFile(hDropInfo, i, nullptr, 0);
+		::DragQueryFile(hDropInfo, i, path.GetBuffer(length + 1), length + 1);
+		path.ReleaseBuffer();
+		const int dot = path.ReverseFind(_T('.'));
+		const CString extension = dot >= 0 ? path.Mid(dot) : CString();
+		bool ok = false;
+		for (const TCHAR* ext : supported)
+			ok = ok || extension.CompareNoCase(ext) == 0;
+		if (ok)
+			accepted.Add(path);
+		else
+			++rejected;
+	}
+	::DragFinish(hDropInfo);
+
+	for (INT_PTR i = 0; i < accepted.GetSize(); ++i)
+		AfxGetApp()->OpenDocumentFile(accepted[i]);
+	if (rejected > 0)
+		AfxMessageBox(_T("Only .jpg, .mp4 and .h264 files can be dropped on the application."), MB_ICONINFORMATION);
+}
 
 static UINT indicators[] =
 {
