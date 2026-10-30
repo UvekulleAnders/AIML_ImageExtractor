@@ -72,6 +72,7 @@ protected:
 	CMotionCandidates m_motion;
 	void BuildMotionHistory();
 	bool m_autoDetect = false;
+	bool m_stillImage = false;
 	CStringA m_filePath;
 	bool ReopenVideo();
 
