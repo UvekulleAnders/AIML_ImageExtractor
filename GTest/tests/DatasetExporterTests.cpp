@@ -39,7 +39,7 @@ TEST(DatasetExporter, WritesClassFoldersPngsAndManifest)
 
 	CString error;
 	const CString out = dir.File(L"export");
-	ASSERT_EQ(1, ExportDataset(db, out, true, error)) << CStringA(error).GetString();
+	ASSERT_EQ(1, ExportDataset(db, out, error)) << CStringA(error).GetString();
 
 	const auto folder = dir.Path() / "export" / L"Bl\u00e5mes__Cyanistes_caeruleus";
 	const auto file = folder / ("img" + std::to_string(imageId) + ".png");
@@ -48,12 +48,12 @@ TEST(DatasetExporter, WritesClassFoldersPngsAndManifest)
 
 	const std::string manifest = ReadAll(dir.Path() / "export" / "manifest.csv");
 	EXPECT_EQ(0, manifest.compare(0, 3, "\xEF\xBB\xBF")); // UTF-8 BOM
-	EXPECT_NE(std::string::npos, manifest.find("image_id,file,species_id,swedish,latin,english,source_file,frame,x,y,w,h"));
+	EXPECT_NE(std::string::npos, manifest.find("image_id,file,species_id,swedish,latin,english,source_file,frame,x,y,w,h,age_code"));
 	EXPECT_NE(std::string::npos, manifest.find("clip.h264"));
-	EXPECT_NE(std::string::npos, manifest.find(",17,5,6,7,8"));
+	EXPECT_NE(std::string::npos, manifest.find(",17,5,6,7,8,U"));
 }
 
-TEST(DatasetExporter, UnknownIsOptional)
+TEST(DatasetExporter, UnknownIsNeverExported)
 {
 	TempDir dir;
 	CSpeciesDatabase db;
@@ -63,8 +63,26 @@ TEST(DatasetExporter, UnknownIsOptional)
 	ASSERT_TRUE(db.AddImage(L"v", 2, cv::Rect(0, 0, 8, 8), { 2 }, tit));
 
 	CString error;
-	EXPECT_EQ(1, ExportDataset(db, dir.File(L"without"), false, error));
-	EXPECT_EQ(2, ExportDataset(db, dir.File(L"with"), true, error));
+	EXPECT_EQ(1, ExportDataset(db, dir.File(L"export"), error));
+}
+
+TEST(DatasetExporter, MinSourcesSkipsSpeciesWithTooFewSources)
+{
+	TempDir dir;
+	CSpeciesDatabase db;
+	ASSERT_TRUE(db.Open(dir.File(L"test.db")));
+	const long long a = AddBird(db, L"Talgoxe", L"Parus major");
+	const long long b = AddBird(db, L"Blames", L"Cyanistes caeruleus");
+	ASSERT_TRUE(db.AddImage(L"v1", 1, cv::Rect(0, 0, 8, 8), { 1 }, a));
+	ASSERT_TRUE(db.AddImage(L"v2", 1, cv::Rect(0, 0, 8, 8), { 2 }, a));
+	ASSERT_TRUE(db.AddImage(L"v1", 2, cv::Rect(0, 0, 8, 8), { 3 }, b));
+	ASSERT_TRUE(db.AddImage(L"v1", 3, cv::Rect(0, 0, 8, 8), { 4 }, b));
+
+	CString error;
+	std::vector<CString> skipped;
+	EXPECT_EQ(2, ExportDataset(db, dir.File(L"export"), error, 2, &skipped));
+	ASSERT_EQ(1u, skipped.size());
+	EXPECT_EQ(CString(L"Blames"), skipped[0]);
 }
 
 TEST(DatasetExporter, EmptyDatabaseWritesHeaderOnly)
@@ -73,7 +91,7 @@ TEST(DatasetExporter, EmptyDatabaseWritesHeaderOnly)
 	CSpeciesDatabase db;
 	ASSERT_TRUE(db.Open(dir.File(L"test.db")));
 	CString error;
-	EXPECT_EQ(0, ExportDataset(db, dir.File(L"export"), true, error));
+	EXPECT_EQ(0, ExportDataset(db, dir.File(L"export"), error));
 	EXPECT_TRUE(std::filesystem::exists(dir.Path() / "export" / "manifest.csv"));
 }
 
@@ -83,7 +101,7 @@ TEST(DatasetExporter, InvalidFolderFails)
 	CSpeciesDatabase db;
 	ASSERT_TRUE(db.Open(dir.File(L"test.db")));
 	CString error;
-	EXPECT_EQ(-1, ExportDataset(db, dir.File(L"missing\\deeper\\export"), true, error));
+	EXPECT_EQ(-1, ExportDataset(db, dir.File(L"missing\\deeper\\export"), error));
 	EXPECT_FALSE(error.IsEmpty());
 }
 
@@ -95,6 +113,6 @@ TEST(DatasetExporter, UnsafeCharactersInNamesAreReplaced)
 	const long long id = AddBird(db, L"A/B:C", L"x y");
 	ASSERT_TRUE(db.AddImage(L"v", 1, cv::Rect(0, 0, 8, 8), { 1 }, id));
 	CString error;
-	ASSERT_EQ(1, ExportDataset(db, dir.File(L"export"), true, error));
+	ASSERT_EQ(1, ExportDataset(db, dir.File(L"export"), error));
 	EXPECT_TRUE(std::filesystem::is_directory(dir.Path() / "export" / "A-B-C__x_y"));
 }

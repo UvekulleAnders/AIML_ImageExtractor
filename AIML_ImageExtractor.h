@@ -32,6 +32,7 @@ public:
 	virtual int ExitInstance();
 	afx_msg void OnFileOpen();
 	afx_msg void OnFileExportDataset();
+	afx_msg void OnFileEditDatabase();
 
 // Implementation
 	UINT  m_nAppLook;

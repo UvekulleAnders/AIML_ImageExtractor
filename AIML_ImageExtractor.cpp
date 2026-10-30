@@ -13,6 +13,7 @@
 #include "AIML_ImageExtractorDoc.h"
 #include "AIML_ImageExtractorView.h"
 #include "DatasetExporter.h"
+#include "EditDatabaseDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -27,6 +28,7 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorApp, CWinAppEx)
 	ON_COMMAND(ID_FILE_NEW, &CWinAppEx::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CAIMLImageExtractorApp::OnFileOpen)
 	ON_COMMAND(ID_FILE_EXPORT_DATASET, &CAIMLImageExtractorApp::OnFileExportDataset)
+	ON_COMMAND(ID_FILE_EDIT_DATABASE, &CAIMLImageExtractorApp::OnFileEditDatabase)
 	// Standard print setup command
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinAppEx::OnFilePrintSetup)
 END_MESSAGE_MAP()
@@ -77,6 +79,17 @@ void CAIMLImageExtractorApp::OnFileOpen()
 		OpenDocumentFile(dialog.GetPathName());
 }
 
+void CAIMLImageExtractorApp::OnFileEditDatabase()
+{
+	if (!m_speciesDb.IsOpen() || m_speciesDb.GetImageCount() == 0)
+	{
+		AfxMessageBox(_T("There are no stored images to edit."), MB_ICONINFORMATION);
+		return;
+	}
+	CEditDatabaseDlg dialog(m_speciesDb, AfxGetMainWnd());
+	dialog.DoModal();
+}
+
 void CAIMLImageExtractorApp::OnFileExportDataset()
 {
 	if (!m_speciesDb.IsOpen() || m_speciesDb.GetImageCount() == 0)
@@ -87,17 +100,26 @@ void CAIMLImageExtractorApp::OnFileExportDataset()
 	CFolderPickerDialog picker(nullptr, 0, AfxGetMainWnd());
 	if (picker.DoModal() != IDOK)
 		return;
-	const bool includeUnknown = AfxMessageBox(
-		_T("Include images labelled Unknown in the export?"), MB_YESNO | MB_ICONQUESTION) == IDYES;
+	const bool trainingReady = AfxMessageBox(
+		_T("Only export species with images from at least two different source files?\n\n")
+		_T("Training needs this for its validation split; other species would make training fail."),
+		MB_YESNO | MB_ICONQUESTION) == IDYES;
 
 	CWaitCursor wait;
 	CString error;
-	const int count = ExportDataset(m_speciesDb, picker.GetPathName(), includeUnknown, error);
+	std::vector<CString> skipped;
+	const int count = ExportDataset(m_speciesDb, picker.GetPathName(), error, trainingReady ? 2 : 0, &skipped);
 	CString message;
 	if (count < 0)
 		message = _T("Export failed: ") + error;
 	else
 		message.Format(_T("Exported %d image(s) to %s (class folders plus manifest.csv)"), count, static_cast<LPCTSTR>(picker.GetPathName()));
+	if (count >= 0 && !skipped.empty())
+	{
+		message += _T("\n\nSkipped (fewer than two source files): ");
+		for (size_t i = 0; i < skipped.size(); ++i)
+			message += (i ? _T(", ") : _T("")) + skipped[i];
+	}
 	AfxMessageBox(message, count < 0 ? MB_ICONERROR : MB_ICONINFORMATION);
 }
 

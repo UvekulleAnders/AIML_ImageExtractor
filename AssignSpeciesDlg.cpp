@@ -41,10 +41,10 @@ namespace
 
 	CString Describe(const SpeciesRecord& species)
 	{
-		CString text = species.swedishName;
-		if (!species.latinName.IsEmpty())
+		CString text = species.DisplayName();
+		if (!species.latinName.IsEmpty() && species.latinName != text)
 			text += _T(" (") + species.latinName + _T(")");
-		if (!species.englishName.IsEmpty() && species.englishName != species.swedishName)
+		if (!species.englishName.IsEmpty() && species.englishName != species.DisplayName())
 			text += _T(" - ") + species.englishName;
 		return text;
 	}
@@ -226,17 +226,17 @@ void CAssignSpeciesDlg::OnOK()
 	species.swedishName.Trim();
 	species.latinName.Trim();
 	species.englishName.Trim();
-	if (species.swedishName.IsEmpty())
+	if (species.latinName.IsEmpty())
 	{
-		m_status.SetWindowText(_T("Enter the Swedish name of the new species."));
-		m_swedishEdit.SetFocus();
+		m_status.SetWindowText(_T("Enter the Latin name of the new species (the Swedish and English names are optional)."));
+		m_latinEdit.SetFocus();
 		return;
 	}
 
 	long long newId = 0;
 	if (!m_database.AddSpecies(species, &newId))
 	{
-		m_status.SetWindowText(_T("Could not add the species (does the Swedish name already exist?)."));
+		m_status.SetWindowText(_T("Could not add the species (does the Latin name already exist?)."));
 		return;
 	}
 	m_speciesId = newId;
