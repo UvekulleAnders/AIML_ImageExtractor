@@ -1,0 +1,482 @@
+
+// AIML_ImageExtractorView.cpp : implementation of the CAIMLImageExtractorView class
+//
+
+#include "pch.h"
+#include "framework.h"
+// SHARED_HANDLERS can be defined in an ATL project implementing preview, thumbnail
+// and search filter handlers and allows sharing of document code with that project.
+#ifndef SHARED_HANDLERS
+#include "AIML_ImageExtractor.h"
+#endif
+
+#include "AIML_ImageExtractorDoc.h"
+#include "AIML_ImageExtractorView.h"
+
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
+
+// CAIMLImageExtractorView
+
+IMPLEMENT_DYNCREATE(CAIMLImageExtractorView, CView)
+
+BEGIN_MESSAGE_MAP(CAIMLImageExtractorView, CView)
+	// Standard printing commands
+	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CAIMLImageExtractorView::OnFilePrintPreview)
+	ON_WM_CONTEXTMENU()
+	ON_WM_RBUTTONUP()
+	ON_WM_KEYDOWN()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_COMMAND(ID_IMAGE_DETECT, &CAIMLImageExtractorView::OnImageDetect)
+	ON_COMMAND(ID_IMAGE_AUTOEXTRACT, &CAIMLImageExtractorView::OnImageAutoExtract)
+	ON_COMMAND(ID_IMAGE_AUTODETECT, &CAIMLImageExtractorView::OnImageAutoDetect)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_AUTODETECT, &CAIMLImageExtractorView::OnUpdateImageAutoDetect)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_DETECT, &CAIMLImageExtractorView::OnUpdateImageCommand)
+	ON_UPDATE_COMMAND_UI(ID_IMAGE_AUTOEXTRACT, &CAIMLImageExtractorView::OnUpdateImageCommand)
+	ON_WM_ERASEBKGND()
+END_MESSAGE_MAP()
+
+// CAIMLImageExtractorView construction/destruction
+
+CAIMLImageExtractorView::CAIMLImageExtractorView() noexcept
+{
+	// TODO: add construction code here
+
+}
+
+CAIMLImageExtractorView::~CAIMLImageExtractorView()
+{
+}
+
+BOOL CAIMLImageExtractorView::PreCreateWindow(CREATESTRUCT& cs)
+{
+	// TODO: Modify the Window class or styles here by modifying
+	//  the CREATESTRUCT cs
+
+	cs.style |= WS_TABSTOP;
+	return CView::PreCreateWindow(cs);
+}
+
+void CAIMLImageExtractorView::OnInitialUpdate()
+{
+	CView::OnInitialUpdate();
+	SetFocus();
+}
+
+// CAIMLImageExtractorView drawing
+
+void CAIMLImageExtractorView::OnDraw(CDC* pDC)
+{
+	CRect clientRect;
+	GetClientRect(&clientRect);
+	if (pDC->IsPrinting() || clientRect.IsRectEmpty())
+	{
+		DrawContent(pDC, clientRect);
+		return;
+	}
+
+	// Draw off-screen so the selection rectangle does not flicker while dragging.
+	CDC memDC;
+	CBitmap bitmap;
+	if (!memDC.CreateCompatibleDC(pDC) || !bitmap.CreateCompatibleBitmap(pDC, clientRect.Width(), clientRect.Height()))
+	{
+		DrawContent(pDC, clientRect);
+		return;
+	}
+	CBitmap* oldBitmap = memDC.SelectObject(&bitmap);
+	DrawContent(&memDC, clientRect);
+	pDC->BitBlt(0, 0, clientRect.Width(), clientRect.Height(), &memDC, 0, 0, SRCCOPY);
+	memDC.SelectObject(oldBitmap);
+}
+
+bool CAIMLImageExtractorView::GetFrameLayout(const CRect& clientRect, const cv::Mat& frame, CRect& drawRect, double& scale) const
+{
+	if (frame.empty() || clientRect.IsRectEmpty())
+		return false;
+
+	const double scaleX = static_cast<double>(clientRect.Width()) / frame.cols;
+	const double scaleY = static_cast<double>(clientRect.Height()) / frame.rows;
+	scale = scaleX < scaleY ? scaleX : scaleY;
+	const int drawWidth = static_cast<int>(frame.cols * scale);
+	const int drawHeight = static_cast<int>(frame.rows * scale);
+	const int left = clientRect.left + (clientRect.Width() - drawWidth) / 2;
+	const int top = clientRect.top + (clientRect.Height() - drawHeight) / 2;
+	drawRect.SetRect(left, top, left + drawWidth, top + drawHeight);
+	return drawWidth > 0 && drawHeight > 0;
+}
+
+void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
+{
+	CAIMLImageExtractorDoc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (!pDoc)
+		return;
+
+	const cv::Mat& frame = pDoc->GetCurrentFrame();
+	pDC->FillSolidRect(clientRect, RGB(0, 0, 0));
+	if (frame.empty() || clientRect.IsRectEmpty())
+		return;
+
+	cv::Mat bgraFrame;
+	if (frame.channels() == 4)
+		bgraFrame = frame;
+	else if (frame.channels() == 3)
+		cv::cvtColor(frame, bgraFrame, cv::COLOR_BGR2BGRA);
+	else if (frame.channels() == 1)
+		cv::cvtColor(frame, bgraFrame, cv::COLOR_GRAY2BGRA);
+	else
+		return;
+
+	BITMAPINFO bitmapInfo = {};
+	bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bitmapInfo.bmiHeader.biWidth = bgraFrame.cols;
+	bitmapInfo.bmiHeader.biHeight = -bgraFrame.rows;
+	bitmapInfo.bmiHeader.biPlanes = 1;
+	bitmapInfo.bmiHeader.biBitCount = 32;
+	bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+	CRect drawRect;
+	double scale = 1.0;
+	if (!GetFrameLayout(clientRect, bgraFrame, drawRect, scale))
+		return;
+
+	::SetStretchBltMode(pDC->GetSafeHdc(), HALFTONE);
+	::StretchDIBits(pDC->GetSafeHdc(), drawRect.left, drawRect.top, drawRect.Width(), drawRect.Height(),
+		0, 0, bgraFrame.cols, bgraFrame.rows, bgraFrame.data,
+		&bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+
+	// Selection rectangle: the one being dragged, or the last one made on this frame.
+	CRect selection;
+	if (m_selecting)
+	{
+		selection.SetRect(m_dragStart, m_dragCurrent);
+		selection.NormalizeRect();
+	}
+	else if (m_hasSelection && m_selectionFrame == pDoc->GetCurrentFrameIndex())
+	{
+		selection.SetRect(
+			drawRect.left + static_cast<int>(m_selectionRect.x * scale),
+			drawRect.top + static_cast<int>(m_selectionRect.y * scale),
+			drawRect.left + static_cast<int>((m_selectionRect.x + m_selectionRect.width) * scale),
+			drawRect.top + static_cast<int>((m_selectionRect.y + m_selectionRect.height) * scale));
+	}
+	if (!selection.IsRectEmpty())
+	{
+		CPen pen(PS_SOLID, 2, RGB(255, 220, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		pDC->Rectangle(selection);
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
+
+	// Detected birds (green); click one to store it, or use Auto extract for all.
+	if (!pDoc->GetDetections().empty())
+	{
+		CPen pen(PS_SOLID, 2, RGB(0, 230, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		for (const cv::Rect& box : pDoc->GetDetections())
+		{
+			pDC->Rectangle(drawRect.left + static_cast<int>(box.x * scale),
+				drawRect.top + static_cast<int>(box.y * scale),
+				drawRect.left + static_cast<int>((box.x + box.width) * scale),
+				drawRect.top + static_cast<int>((box.y + box.height) * scale));
+		}
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
+
+	// Motion candidates the detector could not confirm (orange); click one to store it.
+	if (!pDoc->GetCandidates().empty())
+	{
+		CPen pen(PS_SOLID, 1, RGB(255, 140, 0));
+		CPen* oldPen = pDC->SelectObject(&pen);
+		CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
+		for (const cv::Rect& box : pDoc->GetCandidates())
+		{
+			pDC->Rectangle(drawRect.left + static_cast<int>(box.x * scale),
+				drawRect.top + static_cast<int>(box.y * scale),
+				drawRect.left + static_cast<int>((box.x + box.width) * scale),
+				drawRect.top + static_cast<int>((box.y + box.height) * scale));
+		}
+		pDC->SelectObject(oldBrush);
+		pDC->SelectObject(oldPen);
+	}
+
+	// Show frame progress in the video viewport.
+	CRect progressPanel(clientRect.left + 8, clientRect.bottom - 30,
+		clientRect.right - 8, clientRect.bottom - 5);
+	if (progressPanel.Width() > 20 && progressPanel.Height() > 0)
+	{
+		pDC->FillSolidRect(progressPanel, RGB(40, 40, 40));
+
+		CString label;
+		label.Format(_T("Frame %I64u / %I64u"),
+			static_cast<ULONGLONG>(pDoc->GetCurrentFrameIndex()) + 1,
+			static_cast<ULONGLONG>(pDoc->GetFrameCount()));
+		CRect labelRect(progressPanel);
+		labelRect.DeflateRect(6, 2);
+		labelRect.bottom -= 8;
+		pDC->SetBkMode(TRANSPARENT);
+		pDC->SetTextColor(RGB(255, 255, 255));
+		pDC->DrawText(label, labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+		CRect track(progressPanel.left + 6, progressPanel.bottom - 7,
+			progressPanel.right - 6, progressPanel.bottom - 4);
+		pDC->FillSolidRect(track, RGB(205, 205, 205));
+		double fraction = pDoc->GetFrameCount() > 1.0
+			? pDoc->GetCurrentFrameIndex() / (pDoc->GetFrameCount() - 1.0)
+			: 1.0;
+		if (fraction < 0.0)
+			fraction = 0.0;
+		if (fraction > 1.0)
+			fraction = 1.0;
+		int width = static_cast<int>(track.Width() * fraction);
+		if (width < 2)
+			width = 2;
+		if (width > track.Width())
+			width = track.Width();
+		pDC->FillSolidRect(CRect(track.left, track.top, track.left + width, track.bottom),
+			RGB(220, 0, 0));
+	}
+}
+
+void CAIMLImageExtractorView::OnImageDetect()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->DetectObjects();
+}
+
+void CAIMLImageExtractorView::OnImageAutoExtract()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->AutoExtract();
+}
+
+void CAIMLImageExtractorView::OnImageAutoDetect()
+{
+	if (CAIMLImageExtractorDoc* pDoc = GetDocument())
+		pDoc->SetAutoDetect(!pDoc->GetAutoDetect());
+}
+
+void CAIMLImageExtractorView::OnUpdateImageAutoDetect(CCmdUI* pCmdUI)
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	pCmdUI->Enable(pDoc != nullptr && !pDoc->GetCurrentFrame().empty());
+	pCmdUI->SetCheck(pDoc != nullptr && pDoc->GetAutoDetect() ? 1 : 0);
+}
+
+void CAIMLImageExtractorView::OnUpdateImageCommand(CCmdUI* pCmdUI)
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	pCmdUI->Enable(pDoc != nullptr && !pDoc->GetCurrentFrame().empty());
+}
+
+BOOL CAIMLImageExtractorView::OnEraseBkgnd(CDC* /*pDC*/)
+{
+	return TRUE;
+}
+
+bool CAIMLImageExtractorView::ClientToFramePoint(CPoint point, CPoint& framePoint) const
+{
+	const CAIMLImageExtractorDoc* pDoc = GetDocument();
+	if (pDoc == nullptr)
+		return false;
+	const cv::Mat& frame = pDoc->GetCurrentFrame();
+
+	CRect clientRect, drawRect;
+	GetClientRect(&clientRect);
+	double scale = 1.0;
+	if (!GetFrameLayout(clientRect, frame, drawRect, scale))
+		return false;
+
+	int x = static_cast<int>((point.x - drawRect.left) / scale);
+	int y = static_cast<int>((point.y - drawRect.top) / scale);
+	x = x < 0 ? 0 : (x > frame.cols ? frame.cols : x);
+	y = y < 0 ? 0 : (y > frame.rows ? frame.rows : y);
+	framePoint.SetPoint(x, y);
+	return true;
+}
+
+void CAIMLImageExtractorView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CAIMLImageExtractorDoc* pDoc = GetDocument();
+	CPoint framePoint;
+	SetFocus();
+	if (pDoc != nullptr && ClientToFramePoint(point, framePoint))
+	{
+		m_selecting = true;
+		m_hasSelection = false;
+		m_dragStart = m_dragCurrent = point;
+		SetCapture();
+		Invalidate(FALSE);
+	}
+	CView::OnLButtonDown(nFlags, point);
+}
+
+void CAIMLImageExtractorView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (m_selecting)
+	{
+		m_dragCurrent = point;
+		Invalidate(FALSE);
+	}
+	CView::OnMouseMove(nFlags, point);
+}
+
+void CAIMLImageExtractorView::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if (m_selecting)
+	{
+		m_selecting = false;
+		::ReleaseCapture();
+		m_dragCurrent = point;
+
+		CAIMLImageExtractorDoc* pDoc = GetDocument();
+		CPoint start, end;
+		if (pDoc != nullptr && ClientToFramePoint(m_dragStart, start) && ClientToFramePoint(m_dragCurrent, end))
+		{
+			const cv::Rect region(
+				cv::Point(start.x < end.x ? start.x : end.x, start.y < end.y ? start.y : end.y),
+				cv::Point(start.x < end.x ? end.x : start.x, start.y < end.y ? end.y : start.y));
+			// A plain click (or a tiny drag) is not a selection.
+			if (region.width >= kMinSelectionSize && region.height >= kMinSelectionSize)
+			{
+				m_selectionRect = region;
+				m_selectionFrame = pDoc->GetCurrentFrameIndex();
+				m_hasSelection = true;
+				// Repaint first so the rectangle stays visible while the species dialog is open.
+				Invalidate(FALSE);
+				UpdateWindow();
+				if (!pDoc->ExtractRegion(region))
+					m_hasSelection = false;
+			}
+			else if (pDoc != nullptr)
+			{
+				// A plain click inside a detected bird stores that bird.
+				std::vector<cv::Rect> clickable = pDoc->GetDetections();
+				clickable.insert(clickable.end(), pDoc->GetCandidates().begin(), pDoc->GetCandidates().end());
+				for (const cv::Rect& box : clickable)
+				{
+					if (box.contains(cv::Point(end.x, end.y)))
+					{
+						m_selectionRect = box;
+						m_selectionFrame = pDoc->GetCurrentFrameIndex();
+						m_hasSelection = true;
+						Invalidate(FALSE);
+						UpdateWindow();
+						if (!pDoc->ExtractRegion(box))
+							m_hasSelection = false;
+						break;
+					}
+				}
+			}
+		}
+		Invalidate(FALSE);
+	}
+	CView::OnLButtonUp(nFlags, point);
+}
+
+void CAIMLImageExtractorView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	CAIMLImageExtractorDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		double currentFrame = pDoc->GetCurrentFrameIndex();
+		double lastFrame = pDoc->GetFrameCount() - 1.0;
+		switch (nChar)
+		{
+		case VK_LEFT:
+			pDoc->MoveToFrame(currentFrame - 10.0);
+			return;
+		case VK_RIGHT:
+			pDoc->MoveToFrame(currentFrame + 1.0);
+			return;
+		case VK_HOME:
+			pDoc->MoveToFrame(0.0);
+			return;
+		case VK_END:
+			pDoc->MoveToFrame(lastFrame);
+			return;
+		case 'D':
+			pDoc->DetectObjects();
+			return;
+		case 'A':
+			pDoc->AutoExtract();
+			return;
+		}
+	}
+
+	CView::OnKeyDown(nChar, nRepCnt, nFlags);
+}
+
+
+// CAIMLImageExtractorView printing
+
+
+void CAIMLImageExtractorView::OnFilePrintPreview()
+{
+#ifndef SHARED_HANDLERS
+	AFXPrintPreview(this);
+#endif
+}
+
+BOOL CAIMLImageExtractorView::OnPreparePrinting(CPrintInfo* pInfo)
+{
+	// default preparation
+	return DoPreparePrinting(pInfo);
+}
+
+void CAIMLImageExtractorView::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+{
+	// TODO: add extra initialization before printing
+}
+
+void CAIMLImageExtractorView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+{
+	// TODO: add cleanup after printing
+}
+
+void CAIMLImageExtractorView::OnRButtonUp(UINT /* nFlags */, CPoint point)
+{
+	ClientToScreen(&point);
+	OnContextMenu(this, point);
+}
+
+void CAIMLImageExtractorView::OnContextMenu(CWnd* /* pWnd */, CPoint point)
+{
+#ifndef SHARED_HANDLERS
+	theApp.GetContextMenuManager()->ShowPopupMenu(IDR_POPUP_EDIT, point.x, point.y, this, TRUE);
+#endif
+}
+
+
+// CAIMLImageExtractorView diagnostics
+
+#ifdef _DEBUG
+void CAIMLImageExtractorView::AssertValid() const
+{
+	CView::AssertValid();
+}
+
+void CAIMLImageExtractorView::Dump(CDumpContext& dc) const
+{
+	CView::Dump(dc);
+}
+
+CAIMLImageExtractorDoc* CAIMLImageExtractorView::GetDocument() const // non-debug version is inline
+{
+	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CAIMLImageExtractorDoc)));
+	return (CAIMLImageExtractorDoc*)m_pDocument;
+}
+#endif //_DEBUG
+
+
+// CAIMLImageExtractorView message handlers

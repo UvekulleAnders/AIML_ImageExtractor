@@ -2,9 +2,9 @@
 
 A dialog-based MFC front end for training a bird-species image classifier from an AIML_ImageExtractor dataset export. Training runs in a separate Python/PyTorch process; the MFC application remains responsive and displays its output.
 
-Architecture, the mapping from the dataset export to the ONNX model, and error reporting are described in [Documents/TrainerApplication.docx](../Documents/TrainerApplication.docx).
+Architecture, the mapping from the dataset export to the ONNX model, and error reporting are described in [Documents/TrainerApplication.docx](Documents/TrainerApplication.docx).
 
-Build and run the SpeciesModelTrainer project from the root `AIML_ImageExtractor.slnx` solution.
+Build and run the project from this solution's `SpeciesModelTrainer.slnx` file.
 
 ## Requirements
 

@@ -45,7 +45,7 @@
     <OpenCVSuffix Condition="'$(Configuration)' == 'Debug'">d</OpenCVSuffix>
   </PropertyGroup>
   <PropertyGroup>
-    <AppDir>$(MSBuildThisFileDirectory)..\</AppDir>
+    <AppDir>$(MSBuildThisFileDirectory)..\AIML_ImageExtractor\</AppDir>
     <OutDir>$(MSBuildThisFileDirectory)x64\$(Configuration)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)x64\$(Configuration)\obj\</IntDir>
     <LinkIncremental Condition="'$(Configuration)' == 'Debug'">true</LinkIncremental>

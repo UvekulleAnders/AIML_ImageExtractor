@@ -240,6 +240,8 @@
     <ClInclude Include="MotionCandidates.h" />
     <ClInclude Include="DatasetExporter.h" />
     <ClInclude Include="AssignSpeciesDlg.h" />
+    <ClInclude Include="SpeciesExportChecklistDlg.h" />
+    <ClInclude Include="SpeciesExportChecklistDlgResource.h" />
     <ClInclude Include="SpeciesModelTrainer\Resource.h" />
     <ClInclude Include="SpeciesModelTrainer\SpeciesModelTrainer.h" />
     <ClInclude Include="SpeciesModelTrainer\TrainerDlg.h" />
@@ -269,6 +271,7 @@
     <ClCompile Include="MotionCandidates.cpp" />
     <ClCompile Include="DatasetExporter.cpp" />
     <ClCompile Include="AssignSpeciesDlg.cpp" />
+    <ClCompile Include="SpeciesExportChecklistDlg.cpp" />
     <ClCompile Include="WikipediaLookup.cpp" />
     <ClCompile Include="third_party\sqlite\sqlite3.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -279,6 +282,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="AIMLImageExtractor.rc" />
+    <ResourceCompile Include="SpeciesExportChecklistDlg.rc" />
     <ResourceCompile Include="SpeciesModelTrainer\SpeciesModelTrainer.rc" />
   </ItemGroup>
   <ItemGroup>
@@ -309,6 +313,8 @@
     <Image Include="res\userimages.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".github\copilot-instructions.md" />
+    <None Include="README.md" />
     <None Include="res\AIMLImageExtractor.rc2" />
     <None Include="SpeciesModelTrainer\README.md" />
     <None Include="SpeciesModelTrainer\SpeciesModelTrainer.slnx" />
