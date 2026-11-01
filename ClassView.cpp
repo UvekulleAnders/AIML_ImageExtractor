@@ -139,10 +139,10 @@ void CClassView::FillClassView()
 	const std::vector<ImageRecord> images = database.GetImages();
 	for (const SpeciesRecord& species : database.GetSpecies())
 	{
-		text = species.swedishName;
-		if (!species.latinName.IsEmpty())
+		text = species.DisplayName();
+		if (!species.latinName.IsEmpty() && species.latinName != text)
 			text += _T(" (") + species.latinName + _T(")");
-		if (!species.englishName.IsEmpty() && species.englishName != species.swedishName)
+		if (!species.englishName.IsEmpty() && species.englishName != species.DisplayName())
 			text += _T(" - ") + species.englishName;
 
 		int count = 0;

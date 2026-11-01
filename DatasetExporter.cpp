@@ -2,6 +2,8 @@
 #include "framework.h"
 #include "DatasetExporter.h"
 #include <map>
+#include <set>
+#include <vector>
 #include <fstream>
 
 namespace
@@ -33,11 +35,35 @@ namespace
 	}
 }
 
-int ExportDataset(CSpeciesDatabase& database, const CString& folder, bool includeUnknown, CString& error)
+int ExportDataset(CSpeciesDatabase& database, const CString& folder, CString& error,
+	int minSources, std::vector<CString>* skipped)
 {
 	std::map<long long, SpeciesRecord> species;
 	for (const SpeciesRecord& s : database.GetSpecies())
 		species[s.id] = s;
+
+	std::set<long long> excluded;
+	if (minSources > 0)
+	{
+		std::map<long long, std::set<CString>> sources;
+		for (const ImageRecord& image : database.GetImages())
+		{
+			if (image.speciesId == kUnknownSpeciesId)
+				continue;
+			CString key(image.sourceFile);
+			key.MakeLower();
+			sources[image.speciesId].insert(key);
+		}
+		for (const auto& entry : sources)
+		{
+			if (static_cast<int>(entry.second.size()) < minSources)
+			{
+				excluded.insert(entry.first);
+				if (skipped)
+					skipped->push_back(species[entry.first].DisplayName());
+			}
+		}
+	}
 
 	if (!::CreateDirectory(folder, nullptr) && ::GetLastError() != ERROR_ALREADY_EXISTS)
 	{
@@ -51,18 +77,20 @@ int ExportDataset(CSpeciesDatabase& database, const CString& folder, bool includ
 		error = _T("Could not write manifest.csv.");
 		return -1;
 	}
-	manifest << "\xEF\xBB\xBF" << "image_id,file,species_id,swedish,latin,english,source_file,frame,x,y,w,h\r\n";
+	manifest << "\xEF\xBB\xBF" << "image_id,file,species_id,swedish,latin,english,source_file,frame,x,y,w,h,age_code\r\n";
 
 	int count = 0;
 	for (const ImageRecord& image : database.GetImages())
 	{
-		if (!includeUnknown && image.speciesId == kUnknownSpeciesId)
+		if (image.speciesId == kUnknownSpeciesId)
+			continue;
+		if (excluded.count(image.speciesId))
 			continue;
 		const SpeciesRecord& sp = species[image.speciesId];
 
 		CString className = SafeName(sp.swedishName);
 		if (!sp.latinName.IsEmpty())
-			className += _T("__") + SafeName(sp.latinName);
+			className += (className.IsEmpty() ? _T("") : _T("__")) + SafeName(sp.latinName);
 		::CreateDirectory(folder + _T("\\") + className, nullptr);
 
 		std::vector<uchar> png;
@@ -82,10 +110,10 @@ int ExportDataset(CSpeciesDatabase& database, const CString& folder, bool includ
 		file.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
 
 		CString line;
-		line.Format(_T("%lld,%s,%lld,%s,%s,%s,%s,%lld,%d,%d,%d,%d\r\n"), image.id, static_cast<LPCTSTR>(CsvField(relative)),
+		line.Format(_T("%lld,%s,%lld,%s,%s,%s,%s,%lld,%d,%d,%d,%d,%s\r\n"), image.id, static_cast<LPCTSTR>(CsvField(relative)),
 			image.speciesId, static_cast<LPCTSTR>(CsvField(sp.swedishName)), static_cast<LPCTSTR>(CsvField(sp.latinName)),
 			static_cast<LPCTSTR>(CsvField(sp.englishName)), static_cast<LPCTSTR>(CsvField(image.sourceFile)),
-			image.frameIndex, image.x, image.y, image.width, image.height);
+			image.frameIndex, image.x, image.y, image.width, image.height, static_cast<LPCTSTR>(image.ageCode));
 		manifest << Utf8(line);
 		++count;
 	}

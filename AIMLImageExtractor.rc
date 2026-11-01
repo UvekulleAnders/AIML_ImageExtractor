@@ -181,6 +181,7 @@ BEGIN
         MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
         MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
+        MENUITEM "Edit &database...",           ID_FILE_EDIT_DATABASE
         MENUITEM "&Close",                      ID_FILE_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
@@ -229,6 +230,7 @@ BEGIN
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
         MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
         MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
+        MENUITEM "Edit &database...",           ID_FILE_EDIT_DATABASE
         MENUITEM SEPARATOR
         MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
@@ -487,6 +489,7 @@ BEGIN
     ID_FILE_NEW             "Create a new document\nNew"
     ID_FILE_OPEN            "Open an existing document\nOpen"
     ID_FILE_EXPORT_DATASET  "Export the stored images as class folders plus manifest.csv\nExport dataset"
+    ID_FILE_EDIT_DATABASE   "Edit stored images and species names\nEdit database"
     ID_IMAGE_DETECT         "Detect birds in the current frame\nDetect"
     ID_IMAGE_AUTODETECT     "Detect birds automatically on every frame\nDetect on every frame"
     ID_IMAGE_AUTOEXTRACT    "Store every detected bird of the current frame\nAuto extract"

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "AgeCodes.h"
 #include <vector>
 #include <opencv2/core.hpp>
 #include "sqlite3.h"
@@ -14,6 +15,12 @@ struct SpeciesRecord
 	CString swedishName;
 	CString latinName;
 	CString englishName;
+
+	// The name to show: Swedish if present, otherwise English, otherwise Latin (never empty for stored species).
+	CString DisplayName() const
+	{
+		return !swedishName.IsEmpty() ? swedishName : !englishName.IsEmpty() ? englishName : latinName;
+	}
 };
 
 // Id of the default 'Unknown' species that is always present.
@@ -27,6 +34,7 @@ struct ImageRecord
 	CString sourceFile;
 	long long frameIndex = 0;
 	int x = 0, y = 0, width = 0, height = 0;
+	CString ageCode = _T("U"); // USGS BBL year-class code, see AgeCodes.h
 };
 
 class CSpeciesDatabase
@@ -50,8 +58,15 @@ public:
 
 	// All species ordered by Swedish name, with 'Unknown' first.
 	std::vector<SpeciesRecord> GetSpecies();
-	// Adds a species. Fails if a species with the same Swedish name exists.
+	// Adds a species. The Latin name is compulsory and unique (ignoring case); the Swedish and English names may be empty.
 	bool AddSpecies(const SpeciesRecord& species, long long* newId = nullptr);
+	// Replaces the names of a species (the id in 'species' selects it). Fails for the Unknown species,
+	// an unknown id, an empty Latin name, or a Latin name used by another species.
+	bool UpdateSpecies(const SpeciesRecord& species);
+	// Sets the age (year-class) code of an image; fails for codes not listed in AgeCodes.h.
+	bool SetImageAge(long long imageId, const CString& ageCode);
+	// Links an image to another existing species.
+	bool SetImageSpecies(long long imageId, long long speciesId);
 	long long GetImageCount();
 	// All stored images (metadata only), ordered by species and id.
 	std::vector<ImageRecord> GetImages();
@@ -60,6 +75,8 @@ public:
 
 private:
 	bool Exec(const char* sql);
+	bool MigrateSpeciesTable();
+	bool LatinNameInUse(const CString& latinName, long long exceptId);
 	bool ColumnExists(const char* table, const char* column);
 	void SetError(const char* context);
 
