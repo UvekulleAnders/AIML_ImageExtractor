@@ -18,13 +18,16 @@ A Windows desktop application for browsing video frames and still images, built 
 - speciesImages.db is created next to the executable when the application starts. It has a species table and an images table (source file, frame number, position and size, PNG data).
 
 - **Manual extraction:** drag a rectangle on the frame, then choose the species.
+- When a trained species classifier is installed, the assignment dialog uses the first selected crop to suggest an existing species. The prediction is only a preselection; it is not saved until you confirm, and the species can be changed.
 - **Automatic extraction:** *Image > Detect birds* (or `D`) outlines birds in the frame in green using a YOLOX model (OpenCV `dnn`); *Image > Auto extract detected birds* (`A`) stores all of them for one chosen species, and clicking a green box stores just that bird. *Detect on every frame* detects while browsing.
 -
 -
 
 ## Species classifier training
 
-The separate dialog-based MFC trainer in `../SpeciesModelTrainer/SpeciesModelTrainer.slnx` consumes this export, runs a PyTorch worker, and produces an ONNX model plus a `.labels.json` file. See `../SpeciesModelTrainer/README.md` for setup and usage. Runtime recommendations in AIML_ImageExtractor are a later integration step.
+The separate dialog-based MFC trainer in `../SpeciesModelTrainer/SpeciesModelTrainer.slnx` consumes this export, runs a PyTorch worker, and produces an ONNX model plus a `.labels.json` file. See `../SpeciesModelTrainer/README.md` for setup and usage.
+
+To enable species suggestions, place `species_model.onnx` and its sibling `species_model.labels.json` in a `models` folder beside the AIML_ImageExtractor executable, or in a `models` folder in one of its parent directories. The trainer's default output name is `species_model.onnx`; keep the generated labels file beside it. These files are separate from the YOLOX bird-detection model.
 
 ## Requirements
 
@@ -84,6 +87,7 @@ Build `../GTest/AIML_ImageExtractor_Tests.slnx` and run `../GTest/x64/<Configura
 | `AIML_ImageExtractorDoc.cpp/.h` | Document: opens video and JPG/JPEG sources and provides the current frame/image |
 | `AIML_ImageExtractorView.cpp/.h` | View: draws the current frame, handles keyboard navigation and the mouse selection of image regions |
 | `SpeciesDatabase.cpp/.h` | SQLite wrapper for `speciesImages.db` |
+| `SpeciesClassifier.cpp/.h` | ONNX species classification used to suggest an existing species during image assignment |
 | `AssignSpeciesDlg.cpp/.h` | Dialog that assigns an extracted image to a species or creates a new one |
 | `WikipediaLookup.cpp/.h` | Suggests Latin and English species names from Wikipedia (WinHTTP) |
 | `third_party/sqlite` | SQLite 3.54.1 amalgamation, compiled into the application |

@@ -161,7 +161,7 @@ BOOL CAssignSpeciesDlg::OnInitDialog()
 		SpeciesPrediction prediction;
 		if (classifier.Predict(m_suggestionImage, prediction))
 		{
-			const int suggested = FindSpeciesIndex(prediction.species);
+			const int suggested = FindSpeciesMatch(m_species, prediction.species);
 			if (suggested >= 0)
 			{
 				m_speciesCombo.SetCurSel(suggested);
@@ -183,18 +183,6 @@ BOOL CAssignSpeciesDlg::OnInitDialog()
 bool CAssignSpeciesDlg::IsNewSpecies() const
 {
 	return m_newRadio.GetCheck() == BST_CHECKED;
-}
-
-int CAssignSpeciesDlg::FindSpeciesIndex(const SpeciesRecord& species) const
-{
-	if (species.latinName.IsEmpty())
-		return -1;
-	for (size_t i = 0; i < m_species.size(); ++i)
-	{
-		if (!m_species[i].latinName.IsEmpty() && m_species[i].latinName.CompareNoCase(species.latinName) == 0)
-			return static_cast<int>(i);
-	}
-	return -1;
 }
 
 void CAssignSpeciesDlg::UpdateEnabledState()

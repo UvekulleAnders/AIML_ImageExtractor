@@ -236,6 +236,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="SpeciesDatabase.h" />
+    <ClInclude Include="SpeciesClassifier.h" />
     <ClInclude Include="ObjectDetector.h" />
     <ClInclude Include="MotionCandidates.h" />
     <ClInclude Include="DatasetExporter.h" />
@@ -265,6 +266,7 @@
     </ClCompile>
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="SpeciesDatabase.cpp" />
+    <ClCompile Include="SpeciesClassifier.cpp" />
     <ClCompile Include="ObjectDetector.cpp" />
     <ClCompile Include="MotionCandidates.cpp" />
     <ClCompile Include="DatasetExporter.cpp" />

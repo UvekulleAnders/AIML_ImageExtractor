@@ -30,7 +30,6 @@ private:
 	void PlaceControl(CWnd& control, int x, int y, int cx, int cy);
 	void UpdateEnabledState();
 	bool IsNewSpecies() const;
-	int FindSpeciesIndex(const SpeciesRecord& species) const;
 
 	CSpeciesDatabase& m_database;
 	cv::Mat m_suggestionImage;
