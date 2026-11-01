@@ -19,7 +19,8 @@ A Windows desktop application for browsing video frames and still images, built 
 
 - **Manual extraction:** drag a rectangle on the frame, then choose the species.
 - **Automatic extraction:** *Image > Detect birds* (or `D`) outlines birds in the frame in green using a YOLOX model (OpenCV `dnn`); *Image > Auto extract detected birds* (`A`) stores all of them for one chosen species, and clicking a green box stores just that bird. *Detect on every frame* detects while browsing.
-- **Export for machine learning:** *File > Export dataset...* writes one folder per species (`Swedish__Latin`) with `img<id>.png` files plus `manifest.csv` (image_id, file, species_id, swedish, latin, english, source_file, frame, x, y, w, h). The folder-per-class layout loads directly in PyTorch `ImageFolder` / Keras; split train/validation by source file to avoid leakage.
+-
+-
 
 ## Species classifier training
 

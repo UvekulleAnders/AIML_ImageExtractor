@@ -242,6 +242,7 @@
     <ClInclude Include="AssignSpeciesDlg.h" />
     <ClInclude Include="SpeciesExportChecklistDlg.h" />
     <ClInclude Include="SpeciesExportChecklistDlgResource.h" />
+    <ClInclude Include="EditDatabaseDlg.h" />
     <ClInclude Include="SpeciesModelTrainer\Resource.h" />
     <ClInclude Include="SpeciesModelTrainer\SpeciesModelTrainer.h" />
     <ClInclude Include="SpeciesModelTrainer\TrainerDlg.h" />
@@ -272,6 +273,7 @@
     <ClCompile Include="DatasetExporter.cpp" />
     <ClCompile Include="AssignSpeciesDlg.cpp" />
     <ClCompile Include="SpeciesExportChecklistDlg.cpp" />
+    <ClCompile Include="EditDatabaseDlg.cpp" />
     <ClCompile Include="WikipediaLookup.cpp" />
     <ClCompile Include="third_party\sqlite\sqlite3.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
