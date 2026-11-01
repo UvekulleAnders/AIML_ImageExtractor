@@ -312,7 +312,7 @@ bool CAIMLImageExtractorDoc::ExtractRegions(const std::vector<cv::Rect>& regions
 	if (clippedRegions.empty())
 		return false;
 
-	CAssignSpeciesDlg dialog(database, AfxGetMainWnd());
+	CAssignSpeciesDlg dialog(database, AfxGetMainWnd(), m_currentFrame(clippedRegions.front()));
 	if (dialog.DoModal() != IDOK)
 	{
 		if (mainFrame != nullptr)

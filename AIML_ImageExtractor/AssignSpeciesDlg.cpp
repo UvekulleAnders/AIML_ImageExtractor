@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "AssignSpeciesDlg.h"
+#include "SpeciesClassifier.h"
 #include "WikipediaLookup.h"
 
 namespace
@@ -59,8 +60,8 @@ BEGIN_MESSAGE_MAP(CAssignSpeciesDlg, CDialog)
 	ON_BN_CLICKED(IDC_SUGGEST, &CAssignSpeciesDlg::OnSuggest)
 END_MESSAGE_MAP()
 
-CAssignSpeciesDlg::CAssignSpeciesDlg(CSpeciesDatabase& database, CWnd* parent)
-	: CDialog(), m_database(database)
+CAssignSpeciesDlg::CAssignSpeciesDlg(CSpeciesDatabase& database, CWnd* parent, const cv::Mat& suggestionImage)
+	: CDialog(), m_database(database), m_suggestionImage(suggestionImage)
 {
 	m_pParentWnd = parent;
 }
@@ -154,6 +155,24 @@ BOOL CAssignSpeciesDlg::OnInitDialog()
 			selected = index;
 	}
 	m_speciesCombo.SetCurSel(selected);
+	if (!m_suggestionImage.empty())
+	{
+		CSpeciesClassifier classifier;
+		SpeciesPrediction prediction;
+		if (classifier.Predict(m_suggestionImage, prediction))
+		{
+			const int suggested = FindSpeciesIndex(prediction.species);
+			if (suggested >= 0)
+			{
+				m_speciesCombo.SetCurSel(suggested);
+				CString status;
+				status.Format(_T("Suggested: %s (%d%%). You can change this selection."),
+					static_cast<LPCTSTR>(prediction.species.DisplayName()),
+					static_cast<int>(prediction.confidence * 100.0f + 0.5f));
+				m_status.SetWindowText(status);
+			}
+		}
+	}
 	m_existingRadio.SetCheck(BST_CHECKED);
 	UpdateEnabledState();
 
@@ -164,6 +183,18 @@ BOOL CAssignSpeciesDlg::OnInitDialog()
 bool CAssignSpeciesDlg::IsNewSpecies() const
 {
 	return m_newRadio.GetCheck() == BST_CHECKED;
+}
+
+int CAssignSpeciesDlg::FindSpeciesIndex(const SpeciesRecord& species) const
+{
+	if (species.latinName.IsEmpty())
+		return -1;
+	for (size_t i = 0; i < m_species.size(); ++i)
+	{
+		if (!m_species[i].latinName.IsEmpty() && m_species[i].latinName.CompareNoCase(species.latinName) == 0)
+			return static_cast<int>(i);
+	}
+	return -1;
 }
 
 void CAssignSpeciesDlg::UpdateEnabledState()

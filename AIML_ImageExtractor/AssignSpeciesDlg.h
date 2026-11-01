@@ -9,7 +9,8 @@
 class CAssignSpeciesDlg : public CDialog
 {
 public:
-	explicit CAssignSpeciesDlg(CSpeciesDatabase& database, CWnd* parent = nullptr);
+	explicit CAssignSpeciesDlg(CSpeciesDatabase& database, CWnd* parent = nullptr,
+		const cv::Mat& suggestionImage = cv::Mat());
 
 	// Id of the species chosen (or created) when the dialog was closed with OK.
 	long long GetSpeciesId() const { return m_speciesId; }
@@ -29,8 +30,10 @@ private:
 	void PlaceControl(CWnd& control, int x, int y, int cx, int cy);
 	void UpdateEnabledState();
 	bool IsNewSpecies() const;
+	int FindSpeciesIndex(const SpeciesRecord& species) const;
 
 	CSpeciesDatabase& m_database;
+	cv::Mat m_suggestionImage;
 	std::vector<SpeciesRecord> m_species;
 	long long m_speciesId = kUnknownSpeciesId;
 	UINT m_sourceNameControlId = 0;
