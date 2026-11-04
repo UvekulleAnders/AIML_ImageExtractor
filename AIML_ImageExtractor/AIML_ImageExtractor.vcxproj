@@ -312,6 +312,7 @@
     <Image Include="res\userimages.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="SpeciesExportChecklistDlg.rc" />
     <None Include="res\AIMLImageExtractor.rc2" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
