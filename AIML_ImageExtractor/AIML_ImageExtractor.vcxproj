@@ -240,6 +240,7 @@
     <ClInclude Include="ObjectDetector.h" />
     <ClInclude Include="MotionCandidates.h" />
     <ClInclude Include="DatasetExporter.h" />
+    <ClInclude Include="BatchImageList.h" />
     <ClInclude Include="AssignSpeciesDlg.h" />
     <ClInclude Include="SpeciesExportChecklistDlg.h" />
     <ClInclude Include="SpeciesExportChecklistDlgResource.h" />
@@ -270,6 +271,7 @@
     <ClCompile Include="ObjectDetector.cpp" />
     <ClCompile Include="MotionCandidates.cpp" />
     <ClCompile Include="DatasetExporter.cpp" />
+    <ClCompile Include="BatchImageList.cpp" />
     <ClCompile Include="AssignSpeciesDlg.cpp" />
     <ClCompile Include="SpeciesExportChecklistDlg.cpp" />
     <ClCompile Include="EditDatabaseDlg.cpp" />

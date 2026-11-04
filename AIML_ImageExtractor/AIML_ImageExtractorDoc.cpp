@@ -41,6 +41,12 @@ CAIMLImageExtractorDoc::~CAIMLImageExtractorDoc()
 	m_video.release();
 }
 
+void CAIMLImageExtractorDoc::OnCloseDocument()
+{
+	theApp.OnDocumentClosing(this);
+	CDocument::OnCloseDocument();
+}
+
 BOOL CAIMLImageExtractorDoc::OnOpenDocument(LPCTSTR lpszPathName)
 {
 	if (!CDocument::OnOpenDocument(lpszPathName))

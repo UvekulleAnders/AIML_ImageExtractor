@@ -93,11 +93,13 @@
     <ClCompile Include="tests\SpeciesDatabaseTests.cpp" />
     <ClCompile Include="tests\SpeciesClassifierTests.cpp" />
     <ClCompile Include="tests\DatasetExporterTests.cpp" />
+    <ClCompile Include="tests\BatchImageListTests.cpp" />
     <ClCompile Include="$(AppDir)MotionCandidates.cpp" />
     <ClCompile Include="$(AppDir)ObjectDetector.cpp" />
     <ClCompile Include="$(AppDir)SpeciesDatabase.cpp" />
     <ClCompile Include="$(AppDir)SpeciesClassifier.cpp" />
     <ClCompile Include="$(AppDir)DatasetExporter.cpp" />
+    <ClCompile Include="$(AppDir)BatchImageList.cpp" />
     <ClCompile Include="$(AppDir)third_party\sqlite\sqlite3.c">
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>false</SDLCheck>

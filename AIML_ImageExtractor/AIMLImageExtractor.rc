@@ -182,6 +182,8 @@ BEGIN
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
         MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
         MENUITEM "Edit &database...",           ID_FILE_EDIT_DATABASE
+        MENUITEM "&ProcessImagesFromFile...",   ID_FILE_PROCESS_IMAGES_FROM_FILE
+        MENUITEM "S&top ProcessImagesFromFile", ID_FILE_STOP_PROCESS_IMAGES
         MENUITEM "&Close",                      ID_FILE_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
@@ -231,6 +233,8 @@ BEGIN
         MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
         MENUITEM "&Export dataset...",          ID_FILE_EXPORT_DATASET
         MENUITEM "Edit &database...",           ID_FILE_EDIT_DATABASE
+        MENUITEM "&ProcessImagesFromFile...",   ID_FILE_PROCESS_IMAGES_FROM_FILE
+        MENUITEM "S&top ProcessImagesFromFile", ID_FILE_STOP_PROCESS_IMAGES
         MENUITEM SEPARATOR
         MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
@@ -503,6 +507,8 @@ BEGIN
     ID_FILE_OPEN            "Open an existing document\nOpen"
     ID_FILE_EXPORT_DATASET  "Export the stored images as class folders plus manifest.csv\nExport dataset"
     ID_FILE_EDIT_DATABASE   "Edit stored images and species names\nEdit database"
+    ID_FILE_PROCESS_IMAGES_FROM_FILE "Open each image listed in a text file and detect birds; closing an image opens the next\nProcessImagesFromFile"
+    ID_FILE_STOP_PROCESS_IMAGES "Stop processing the image list (progress is saved)\nStop ProcessImagesFromFile"
     ID_IMAGE_DETECT         "Detect birds in the current frame\nDetect"
     ID_IMAGE_AUTODETECT     "Detect birds automatically on every frame\nDetect on every frame"
     ID_IMAGE_AUTOEXTRACT    "Store every detected bird of the current frame\nAuto extract"

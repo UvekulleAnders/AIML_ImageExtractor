@@ -30,7 +30,14 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWndEx)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_VIEW_APPLOOK_WIN_2000, ID_VIEW_APPLOOK_WINDOWS_7, &CMainFrame::OnUpdateApplicationLook)
 	ON_WM_SETTINGCHANGE()
 	ON_WM_DROPFILES()
+	ON_MESSAGE(WM_BATCH_OPEN_NEXT, &CMainFrame::OnBatchOpenNext)
 END_MESSAGE_MAP()
+
+LRESULT CMainFrame::OnBatchOpenNext(WPARAM, LPARAM)
+{
+	theApp.OpenNextBatchImage();
+	return 0;
+}
 
 void CMainFrame::OnDropFiles(HDROP hDropInfo)
 {
