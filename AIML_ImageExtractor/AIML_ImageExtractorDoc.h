@@ -26,6 +26,7 @@ public:
 // Overrides
 public:
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+	virtual void OnCloseDocument();
 	virtual BOOL OnNewDocument();
 	virtual void Serialize(CArchive& ar);
 	bool MoveToFrame(double frameIndex);

@@ -210,6 +210,31 @@ void CAIMLImageExtractorView::DrawContent(CDC* pDC, const CRect& clientRect)
 		pDC->SelectObject(oldPen);
 	}
 
+	// Batch progress (ProcessImagesFromFile): which image of the list this is.
+	if (theApp.IsBatchDocument(pDoc))
+	{
+		CRect batchPanel(clientRect.left + 8, clientRect.top + 5, clientRect.right - 8, clientRect.top + 30);
+		if (batchPanel.Width() > 20)
+		{
+			pDC->FillSolidRect(batchPanel, RGB(40, 40, 40));
+			CString label;
+			label.Format(_T("ProcessImagesFromFile: image %I64u / %I64u"),
+				static_cast<ULONGLONG>(theApp.GetBatchPosition()), static_cast<ULONGLONG>(theApp.GetBatchCount()));
+			CRect labelRect(batchPanel);
+			labelRect.DeflateRect(6, 2);
+			labelRect.bottom -= 8;
+			pDC->SetBkMode(TRANSPARENT);
+			pDC->SetTextColor(RGB(255, 255, 255));
+			pDC->DrawText(label, labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+			CRect track(batchPanel.left + 6, batchPanel.bottom - 7, batchPanel.right - 6, batchPanel.bottom - 4);
+			pDC->FillSolidRect(track, RGB(205, 205, 205));
+			const size_t total = theApp.GetBatchCount();
+			const int width = total > 0 ? static_cast<int>(track.Width() * (static_cast<double>(theApp.GetBatchPosition()) / total)) : 0;
+			pDC->FillSolidRect(CRect(track.left, track.top, track.left + (width < 2 ? 2 : width), track.bottom), RGB(0, 150, 0));
+		}
+	}
+
 	// Show frame progress in the video viewport.
 	CRect progressPanel(clientRect.left + 8, clientRect.bottom - 30,
 		clientRect.right - 8, clientRect.bottom - 5);

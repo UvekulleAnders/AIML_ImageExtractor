@@ -14,6 +14,8 @@
 #include "DatasetExporter.h"
 #include "SpeciesExportChecklistDlg.h"
 #include "EditDatabaseDlg.h"
+#include "BatchImageList.h"
+#include <filesystem>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,6 +31,9 @@ BEGIN_MESSAGE_MAP(CAIMLImageExtractorApp, CWinAppEx)
 	ON_COMMAND(ID_FILE_OPEN, &CAIMLImageExtractorApp::OnFileOpen)
 	ON_COMMAND(ID_FILE_EXPORT_DATASET, &CAIMLImageExtractorApp::OnFileExportDataset)
 	ON_COMMAND(ID_FILE_EDIT_DATABASE, &CAIMLImageExtractorApp::OnFileEditDatabase)
+	ON_COMMAND(ID_FILE_PROCESS_IMAGES_FROM_FILE, &CAIMLImageExtractorApp::OnFileProcessImagesFromFile)
+	ON_COMMAND(ID_FILE_STOP_PROCESS_IMAGES, &CAIMLImageExtractorApp::OnFileStopProcessImages)
+	ON_UPDATE_COMMAND_UI(ID_FILE_STOP_PROCESS_IMAGES, &CAIMLImageExtractorApp::OnUpdateFileStopProcessImages)
 	// Standard print setup command
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinAppEx::OnFilePrintSetup)
 END_MESSAGE_MAP()
@@ -77,6 +82,130 @@ void CAIMLImageExtractorApp::OnFileOpen()
 		OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY, filter);
 	if (dialog.DoModal() == IDOK)
 		OpenDocumentFile(dialog.GetPathName());
+}
+
+void CAIMLImageExtractorApp::OnFileProcessImagesFromFile()
+{
+	CFileDialog dialog(TRUE, _T("txt"), nullptr,
+		OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY,
+		_T("Image list (*.txt)|*.txt|All Files (*.*)|*.*||"));
+	dialog.m_ofn.lpstrTitle = _T("Select a text file listing the images to process");
+	if (dialog.DoModal() != IDOK)
+		return;
+
+	const std::wstring listFile(dialog.GetPathName().GetString());
+	std::vector<std::wstring> images;
+	if (!LoadImageList(listFile, images))
+	{
+		AfxMessageBox(_T("The image list could not be read."), MB_ICONERROR);
+		return;
+	}
+	if (images.empty())
+	{
+		AfxMessageBox(_T("The image list contains no image paths."), MB_ICONINFORMATION);
+		return;
+	}
+
+	size_t start = LoadBatchProgress(listFile);
+	if (start > 0)
+	{
+		CString question;
+		if (start >= images.size())
+			question.Format(_T("All %d images in this list were processed earlier.\n\nStart over from the first image?"),
+				static_cast<int>(images.size()));
+		else
+			question.Format(_T("%d of %d images were already processed.\n\nYes = resume with image %d\nNo = start over from the first image"),
+				static_cast<int>(start), static_cast<int>(images.size()), static_cast<int>(start) + 1);
+		const UINT type = start >= images.size() ? MB_YESNO : MB_YESNOCANCEL;
+		const int answer = AfxMessageBox(question, type | MB_ICONQUESTION);
+		if (answer == IDCANCEL || (start >= images.size() && answer != IDYES))
+			return;
+		if (start >= images.size() || answer == IDNO)
+			start = 0;
+	}
+
+	m_batchListFile = listFile;
+	m_batchImages = std::move(images);
+	m_batchNext = start;
+	m_batchCurrent = start;
+	m_batchDoc = nullptr;
+	m_batchActive = true;
+	OpenNextBatchImage();
+}
+
+void CAIMLImageExtractorApp::OnFileStopProcessImages()
+{
+	if (m_batchActive)
+		FinishBatch(_T("ProcessImagesFromFile stopped; run it again on the same list to resume."));
+}
+
+void CAIMLImageExtractorApp::OnUpdateFileStopProcessImages(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_batchActive);
+}
+
+void CAIMLImageExtractorApp::FinishBatch(const CString& message)
+{
+	m_batchActive = false;
+	m_batchDoc = nullptr;
+	if (CFrameWnd* frame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd()))
+		frame->SetMessageText(message);
+	if (CWnd* main = AfxGetMainWnd())
+		main->RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+void CAIMLImageExtractorApp::OnDocumentClosing(const CDocument* doc)
+{
+	if (!m_batchActive || doc != m_batchDoc)
+		return;
+	m_batchDoc = nullptr;
+	SaveBatchProgress(m_batchListFile, m_batchCurrent + 1);
+	// Open the next image only after this document is fully closed.
+	if (CWnd* main = AfxGetMainWnd())
+		main->PostMessage(WM_BATCH_OPEN_NEXT);
+}
+
+void CAIMLImageExtractorApp::OpenNextBatchImage()
+{
+	if (!m_batchActive || m_batchDoc != nullptr)
+		return;
+
+	int skipped = 0;
+	while (m_batchNext < m_batchImages.size())
+	{
+		const size_t index = m_batchNext++;
+		const CString path(m_batchImages[index].c_str());
+		const bool isJpeg = path.Right(4).CompareNoCase(_T(".jpg")) == 0 || path.Right(5).CompareNoCase(_T(".jpeg")) == 0;
+		if (!isJpeg || ::GetFileAttributes(path) == INVALID_FILE_ATTRIBUTES)
+		{
+			++skipped;
+			continue;
+		}
+		CDocument* doc = OpenDocumentFile(path);
+		if (doc == nullptr)
+		{
+			++skipped;
+			continue;
+		}
+		m_batchCurrent = index;
+		m_batchDoc = doc;
+		if (CAIMLImageExtractorDoc* imageDoc = DYNAMIC_DOWNCAST(CAIMLImageExtractorDoc, doc))
+			imageDoc->DetectObjects();
+		CString message;
+		message.Format(_T("ProcessImagesFromFile: image %d / %d"), static_cast<int>(index) + 1, static_cast<int>(m_batchImages.size()));
+		if (skipped > 0)
+			message.AppendFormat(_T(" (%d unreadable or non-JPEG entries skipped)"), skipped);
+		if (CFrameWnd* frame = DYNAMIC_DOWNCAST(CFrameWnd, AfxGetMainWnd()))
+			frame->SetMessageText(message);
+		doc->UpdateAllViews(nullptr);
+		return;
+	}
+
+	SaveBatchProgress(m_batchListFile, m_batchImages.size());
+	CString done;
+	done.Format(_T("ProcessImagesFromFile finished: all %d images in the list were processed."), static_cast<int>(m_batchImages.size()));
+	FinishBatch(done);
+	AfxMessageBox(done, MB_ICONINFORMATION);
 }
 
 void CAIMLImageExtractorApp::OnFileEditDatabase()
