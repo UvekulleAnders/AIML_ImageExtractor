@@ -230,6 +230,9 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
+    <None Include="SpeciesExportChecklistDlg.rc">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="res\AIMLImageExtractor.rc2">
       <Filter>Resource Files</Filter>
     </None>
